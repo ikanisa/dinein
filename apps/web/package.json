@@ -6,9 +6,11 @@
   "scripts": {
     "dev": "vite",
     "build": "vite build",
+    "build:cloudflare": "npm ci --legacy-peer-deps && npm run typecheck && npm run build",
     "preview": "vite preview",
     "start": "serve -s dist -l $PORT",
     "typecheck": "tsc --noEmit",
+    "deploy:cloudflare": "./deploy-cloudflare.sh",
     "lint": "eslint . --ext .ts,.tsx --report-unused-disable-directives --max-warnings 0",
     "lint:fix": "eslint . --ext .ts,.tsx --fix",
     "format": "prettier --write \"**/*.{ts,tsx,json,css,md}\"",

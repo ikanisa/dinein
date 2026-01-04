@@ -1,0 +1,13 @@
+{
+  "build": {
+    "command": "npm run build",
+    "cwd": "apps/web",
+    "watch_dir": "apps/web"
+  },
+  "deployment": {
+    "workers": {
+      "compatibility_date": "2024-01-01"
+    }
+  }
+}
+
