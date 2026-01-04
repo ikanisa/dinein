@@ -40,6 +40,17 @@ export interface UIContext {
 }
 
 /**
+ * Invoke Gemini Edge Function
+ */
+const invokeGemini = async (action: string, payload: any) => {
+  const { data, error } = await supabase.functions.invoke('gemini-features', {
+    body: { action, ...payload }
+  });
+  if (error) throw error;
+  return data;
+};
+
+/**
  * Invoke Gemini Edge Function with retry logic
  */
 async function invokeGeminiFunction(action: string, payload: any, retries = 2): Promise<any> {

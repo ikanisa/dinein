@@ -1,3 +1,7 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
 /* Mobile-First PWA Styles */
 /* World-class mobile optimization for native-like experience */
 

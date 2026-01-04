@@ -7,9 +7,9 @@ import { Venue, MenuItem, Order, OrderStatus, PaymentStatus, Table, Reservation,
 // --- HELPERS ---
 
 const handleSupabaseError = (error: any, context: string) => {
-    console.error(`DB Error [${context}]:`, error);
-    // specific error handling logic (e.g., toast notifications) could go here
-    return null;
+  console.error(`DB Error [${context}]:`, JSON.stringify(error, null, 2));
+  // specific error handling logic (e.g., toast notifications) could go here
+  return null;
 };
 
 // --- MAPPERS ---
@@ -128,34 +128,34 @@ export const getVenueById = async (id: string): Promise<Venue | undefined> => {
     .single();
   if (error) return undefined;
   const venue = mapVenue(data);
-  
+
   // Fetch menu items using the helper function
   venue.menu = await getMenuItemsForVendor(id);
-  
+
   return venue;
 };
 
 export const getVenueByOwner = async (ownerId: string): Promise<Venue | undefined> => {
-    // Join vendor_users to find vendor by owner
-    const { data: vendorUser } = await supabase
-        .from('vendor_users')
-        .select('vendor_id')
-        .eq('auth_user_id', ownerId)
-        .eq('is_active', true)
-        .single();
-    
-    if (!vendorUser) return undefined;
-    
-    const { data, error } = await supabase.from('vendors').select('*').eq('id', vendorUser.vendor_id).single();
-    if (error || !data) return undefined;
-    
-    const venue = mapVenue(data);
-    venue.ownerId = ownerId;
-    
-    // Fetch menu items using the helper function
-    venue.menu = await getMenuItemsForVendor(data.id);
-    
-    return venue;
+  // Join vendor_users to find vendor by owner
+  const { data: vendorUser } = await supabase
+    .from('vendor_users')
+    .select('vendor_id')
+    .eq('auth_user_id', ownerId)
+    .eq('is_active', true)
+    .single();
+
+  if (!vendorUser) return undefined;
+
+  const { data, error } = await supabase.from('vendors').select('*').eq('id', vendorUser.vendor_id).single();
+  if (error || !data) return undefined;
+
+  const venue = mapVenue(data);
+  venue.ownerId = ownerId;
+
+  // Fetch menu items using the helper function
+  venue.menu = await getMenuItemsForVendor(data.id);
+
+  return venue;
 };
 
 export const getAllVenues = async (): Promise<Venue[]> => {
@@ -166,7 +166,7 @@ export const getAllVenues = async (): Promise<Venue[]> => {
     .eq('status', 'active');
   if (error) handleSupabaseError(error, 'getAllVenues');
   const venues = (data || []).map(mapVenue);
-  
+
   // Batch fetch menu items for all venues (more efficient than N+1 queries)
   const venueIds = venues.map(v => v.id);
   if (venueIds.length > 0) {
@@ -175,7 +175,7 @@ export const getAllVenues = async (): Promise<Venue[]> => {
       .select('vendor_id, id, name, description, price, category, is_available, tags_json, image_url')
       .in('vendor_id', venueIds)
       .eq('is_available', true);
-    
+
     // Group menu items by vendor_id
     const menuMap = new Map<string, MenuItem[]>();
     (menuItems || []).forEach(item => {
@@ -184,49 +184,49 @@ export const getAllVenues = async (): Promise<Venue[]> => {
       }
       menuMap.get(item.vendor_id)!.push(mapMenuItem(item));
     });
-    
+
     // Attach menu items to venues
     venues.forEach(venue => {
       venue.menu = menuMap.get(venue.id) || [];
     });
   }
-  
+
   return venues;
 };
 
 export const getFeaturedVenues = async (limit = 10): Promise<Venue[]> => {
-    // Optimized query: select only needed columns
-    const { data, error } = await supabase
-      .from('vendors')
-      .select('id, name, address, google_place_id, revolut_link, phone, whatsapp, website, hours_json, photos_json, lat, lng, status, owner_id')
-      .eq('status', 'active')
-      .limit(limit);
-    if (error) handleSupabaseError(error, 'getFeaturedVenues');
-    const venues = (data || []).map(mapVenue);
-    
-    // Batch fetch menu items for featured venues
-    const venueIds = venues.map(v => v.id);
-    if (venueIds.length > 0) {
-      const { data: menuItems } = await supabase
-        .from('menu_items')
-        .select('vendor_id, id, name, description, price, category, is_available, tags_json, image_url')
-        .in('vendor_id', venueIds)
-        .eq('is_available', true);
-      
-      const menuMap = new Map<string, MenuItem[]>();
-      (menuItems || []).forEach(item => {
-        if (!menuMap.has(item.vendor_id)) {
-          menuMap.set(item.vendor_id, []);
-        }
-        menuMap.get(item.vendor_id)!.push(mapMenuItem(item));
-      });
-      
-      venues.forEach(venue => {
-        venue.menu = menuMap.get(venue.id) || [];
-      });
-    }
-    
-    return venues;
+  // Optimized query: select only needed columns
+  const { data, error } = await supabase
+    .from('vendors')
+    .select('id, name, address, google_place_id, revolut_link, phone, whatsapp, website, hours_json, photos_json, lat, lng, status, owner_id')
+    .eq('status', 'active')
+    .limit(limit);
+  if (error) handleSupabaseError(error, 'getFeaturedVenues');
+  const venues = (data || []).map(mapVenue);
+
+  // Batch fetch menu items for featured venues
+  const venueIds = venues.map(v => v.id);
+  if (venueIds.length > 0) {
+    const { data: menuItems } = await supabase
+      .from('menu_items')
+      .select('vendor_id, id, name, description, price, category, is_available, tags_json, image_url')
+      .in('vendor_id', venueIds)
+      .eq('is_available', true);
+
+    const menuMap = new Map<string, MenuItem[]>();
+    (menuItems || []).forEach(item => {
+      if (!menuMap.has(item.vendor_id)) {
+        menuMap.set(item.vendor_id, []);
+      }
+      menuMap.get(item.vendor_id)!.push(mapMenuItem(item));
+    });
+
+    venues.forEach(venue => {
+      venue.menu = menuMap.get(venue.id) || [];
+    });
+  }
+
+  return venues;
 };
 
 export const createVendor = async (vendorData: {
@@ -247,7 +247,7 @@ export const createVendor = async (vendorData: {
   const { data, error } = await supabase.functions.invoke('vendor_claim', {
     body: vendorData
   });
-  
+
   if (error) {
     console.error("Vendor claim error:", error);
     throw new Error(error.message || "Failed to claim vendor. Please try again.");
@@ -283,18 +283,18 @@ export const createVenue = createVendor;
 export const updateVenue = async (venue: Venue): Promise<void> => {
   // Map Venue to vendors table schema
   const dbVendor = {
-      name: venue.name,
-      address: venue.address,
-      revolut_link: venue.revolutHandle,
-      phone: venue.phone,
-      whatsapp: venue.whatsappNumber,
-      website: venue.website,
-      hours_json: venue.openingHours ? { text: venue.openingHours } : null,
-      photos_json: venue.imageUrl ? [{ url: venue.imageUrl }] : null
-      // Note: description, instagram, facebook, tags not in vendors schema
-      // Menu items are in separate menu_items table
+    name: venue.name,
+    address: venue.address,
+    revolut_link: venue.revolutHandle,
+    phone: venue.phone,
+    whatsapp: venue.whatsappNumber,
+    website: venue.website,
+    hours_json: venue.openingHours ? { text: venue.openingHours } : null,
+    photos_json: venue.imageUrl ? [{ url: venue.imageUrl }] : null
+    // Note: description, instagram, facebook, tags not in vendors schema
+    // Menu items are in separate menu_items table
   };
-  
+
   const { error } = await supabase.from('vendors').update(dbVendor).eq('id', venue.id);
   if (error) throw error;
 };
@@ -307,15 +307,15 @@ export const getMenuItemsForVendor = async (vendorId: string, includeUnavailable
     .from('menu_items')
     .select('id, vendor_id, name, description, price, category, is_available, tags_json, image_url, currency')
     .eq('vendor_id', vendorId);
-  
+
   if (!includeUnavailable) {
     query = query.eq('is_available', true);
   }
-  
+
   const { data, error } = await query
     .order('category', { ascending: true })
     .order('name', { ascending: true });
-    
+
   if (error) throw error;
   return (data || []).map(mapMenuItem);
 };
@@ -331,7 +331,7 @@ export const createMenuItem = async (vendorId: string, item: Omit<MenuItem, 'id'
       console.warn('Image generation will happen after item creation', e);
     }
   }
-  
+
   const { data, error } = await supabase
     .from('menu_items')
     .insert({
@@ -347,11 +347,11 @@ export const createMenuItem = async (vendorId: string, item: Omit<MenuItem, 'id'
     })
     .select()
     .single();
-    
+
   if (error) throw error;
-  
+
   const createdItem = mapMenuItem(data);
-  
+
   // Generate and update image if not provided
   if (!imageUrl && item.name && data.id) {
     try {
@@ -362,14 +362,14 @@ export const createMenuItem = async (vendorId: string, item: Omit<MenuItem, 'id'
         item.name,
         item.description || ''
       );
-      
+
       if (generatedImageUrl) {
         // Update the item with the generated image
         const { error: updateError } = await supabase
           .from('menu_items')
           .update({ image_url: generatedImageUrl })
           .eq('id', data.id);
-        
+
         if (!updateError) {
           return { ...createdItem, imageUrl: generatedImageUrl };
         }
@@ -378,7 +378,7 @@ export const createMenuItem = async (vendorId: string, item: Omit<MenuItem, 'id'
       console.warn('Failed to generate menu item image:', e);
     }
   }
-  
+
   return createdItem;
 };
 
@@ -391,14 +391,14 @@ export const updateMenuItem = async (itemId: string, updates: Partial<MenuItem>)
   if (updates.available !== undefined) dbUpdates.is_available = updates.available;
   if (updates.tags) dbUpdates.tags_json = updates.tags;
   if (updates.imageUrl !== undefined) dbUpdates.image_url = updates.imageUrl;
-  
+
   const { data, error } = await supabase
     .from('menu_items')
     .update(dbUpdates)
     .eq('id', itemId)
     .select()
     .single();
-    
+
   if (error) throw error;
   return mapMenuItem(data);
 };
@@ -408,7 +408,7 @@ export const deleteMenuItem = async (itemId: string): Promise<void> => {
     .from('menu_items')
     .delete()
     .eq('id', itemId);
-    
+
   if (error) throw error;
 };
 
@@ -417,14 +417,14 @@ export const updateVenueMenu = async (venueId: string, menu: MenuItem[]): Promis
   const currentItems = await getMenuItemsForVendor(venueId, true);
   const currentIds = new Set(currentItems.map(i => i.id));
   const newIds = new Set(menu.map(i => i.id));
-  
+
   // Delete items not in new menu
   for (const item of currentItems) {
     if (!newIds.has(item.id)) {
       await deleteMenuItem(item.id);
     }
   }
-  
+
   // Create or update items
   for (const item of menu) {
     if (item.id.startsWith('new-') || item.id.startsWith('temp-') || !currentIds.has(item.id)) {
@@ -450,7 +450,7 @@ export const createOrder = async (orderData: {
 }): Promise<Order> => {
   // SECURE: Use Edge Function with server-side validation
   // Never allow direct client inserts - security critical!
-  
+
   if (!orderData.tablePublicCode && !orderData.tableNumber) {
     throw new Error('Either tablePublicCode or tableNumber is required');
   }
@@ -479,7 +479,7 @@ export const createOrder = async (orderData: {
   // Transform Edge Function response to frontend Order format
   const orderResponse = data.order;
   const orderItems = data.order.items || [];
-  
+
   // Helper to map database status to frontend enum
   const mapOrderStatus = (dbStatus: string): OrderStatus => {
     const upper = dbStatus.toUpperCase();
@@ -493,7 +493,7 @@ export const createOrder = async (orderData: {
     const upper = dbStatus.toUpperCase();
     return upper === 'PAID' ? PaymentStatus.PAID : PaymentStatus.UNPAID;
   };
-  
+
   // Map order items back to frontend format (we need to fetch menu items for full details)
   // For now, use snapshot data from order_items
   const mappedItems = orderItems.map((oi: any) => ({
@@ -593,9 +593,9 @@ export const getOrdersForVenue = async (venueId: string): Promise<Order[]> => {
 };
 
 export const getAllOrders = async (): Promise<Order[]> => {
-    const { data, error } = await supabase.from('orders').select('*');
-    if (error) handleSupabaseError(error, 'getAllOrders');
-    return (data || []).map(mapOrder);
+  const { data, error } = await supabase.from('orders').select('*');
+  if (error) handleSupabaseError(error, 'getAllOrders');
+  return (data || []).map(mapOrder);
 }
 
 export const updateOrderStatus = async (orderId: string, status: OrderStatus): Promise<void> => {
@@ -636,62 +636,62 @@ export const updatePaymentStatus = async (orderId: string, status: PaymentStatus
 // ADMIN
 
 export const adminSetVendorStatus = async (vendorId: string, status: 'active' | 'suspended') => {
-    const { error } = await supabase.functions.invoke('business-logic', {
-        body: { action: 'admin-update-status', payload: { venueId: vendorId, status } }
-    });
-    if (error) throw error;
+  const { error } = await supabase.functions.invoke('business-logic', {
+    body: { action: 'admin-update-status', payload: { venueId: vendorId, status } }
+  });
+  if (error) throw error;
 };
 
 // TABLES
 
 export const getTablesForVenue = async (venueId: string): Promise<Table[]> => {
-    const { data, error } = await supabase.from('tables').select('*').eq('venue_id', venueId);
-    if (error) handleSupabaseError(error, 'getTables');
-    return (data || []).map(mapTable);
+  const { data, error } = await supabase.from('tables').select('*').eq('venue_id', venueId);
+  if (error) handleSupabaseError(error, 'getTables');
+  return (data || []).map(mapTable);
 };
 
 export const createTablesBatch = async (venueId: string, count: number, startNum: number): Promise<Table[]> => {
-    // Use secure Edge Function for table generation with proper public_code creation
-    const { data, error } = await supabase.functions.invoke('tables_generate', {
-        body: {
-            vendor_id: venueId, // Frontend uses venueId, backend uses vendor_id
-            count: count,
-            start_number: startNum
-        }
-    });
-
-    if (error) {
-        throw new Error(error.message || 'Failed to create tables');
+  // Use secure Edge Function for table generation with proper public_code creation
+  const { data, error } = await supabase.functions.invoke('tables_generate', {
+    body: {
+      vendor_id: venueId, // Frontend uses venueId, backend uses vendor_id
+      count: count,
+      start_number: startNum
     }
+  });
 
-    // Map response tables to frontend Table format
-    return (data.tables || []).map((t: any) => ({
-        id: t.id,
-        venueId: t.vendor_id,
-        label: t.label,
-        code: t.public_code,
-        active: t.is_active
-    }));
+  if (error) {
+    throw new Error(error.message || 'Failed to create tables');
+  }
+
+  // Map response tables to frontend Table format
+  return (data.tables || []).map((t: any) => ({
+    id: t.id,
+    venueId: t.vendor_id,
+    label: t.label,
+    code: t.public_code,
+    active: t.is_active
+  }));
 };
 
 export const deleteTable = async (tableId: string): Promise<void> => {
-    const { error } = await supabase.from('tables').delete().eq('id', tableId);
-    if (error) throw error;
+  const { error } = await supabase.from('tables').delete().eq('id', tableId);
+  if (error) throw error;
 };
 
 export const updateTableStatus = async (tableId: string, active: boolean): Promise<void> => {
-    const { error } = await supabase.from('tables').update({ active }).eq('id', tableId);
-    if (error) throw error;
+  const { error } = await supabase.from('tables').update({ active }).eq('id', tableId);
+  if (error) throw error;
 };
 
 export const regenerateTableCode = async (tableId: string): Promise<void> => {
-    const suffix = Math.random().toString(36).substr(2, 6).toUpperCase();
-    const { data } = await supabase.from('tables').select('code').eq('id', tableId).single();
-    if(data) {
-        const prefix = data.code.split('-')[0];
-        const { error } = await supabase.from('tables').update({ code: `${prefix}-${suffix}` }).eq('id', tableId);
-        if (error) throw error;
-    }
+  const suffix = Math.random().toString(36).substr(2, 6).toUpperCase();
+  const { data } = await supabase.from('tables').select('code').eq('id', tableId).single();
+  if (data) {
+    const prefix = data.code.split('-')[0];
+    const { error } = await supabase.from('tables').update({ code: `${prefix}-${suffix}` }).eq('id', tableId);
+    if (error) throw error;
+  }
 };
 
 // RESERVATIONS
@@ -707,7 +707,7 @@ export const createReservation = async (resData: {
   if (userError || !user) {
     throw new Error('Must be authenticated to create reservation');
   }
-  
+
   const dbRes = {
     vendor_id: resData.venueId, // DB uses vendor_id
     client_auth_user_id: user.id,
@@ -716,13 +716,13 @@ export const createReservation = async (resData: {
     notes: resData.note || null, // DB uses 'notes'
     status: 'pending' // DB uses lowercase status
   };
-  
+
   const { data, error } = await supabase
     .from('reservations')
     .insert(dbRes)
     .select()
     .single();
-    
+
   if (error) throw error;
   return mapReservation(data);
 };
@@ -733,7 +733,7 @@ export const getReservationsForVenue = async (venueId: string): Promise<Reservat
     .select('*')
     .eq('vendor_id', venueId) // DB uses vendor_id
     .order('datetime', { ascending: true });
-    
+
   if (error) handleSupabaseError(error, 'getReservationsForVenue');
   return (data || []).map(mapReservation);
 };
@@ -741,12 +741,12 @@ export const getReservationsForVenue = async (venueId: string): Promise<Reservat
 export const updateReservationStatus = async (id: string, status: ReservationStatus): Promise<void> => {
   // Map frontend enum to DB status
   const dbStatus = mapReservationStatusToDb(status);
-  
+
   const { error } = await supabase
     .from('reservations')
     .update({ status: dbStatus })
     .eq('id', id);
-    
+
   if (error) throw error;
 };
 
@@ -756,15 +756,15 @@ export const getMyProfile = async (): Promise<User> => {
   const { data: { user } } = await supabase.auth.getUser();
   // Return guest structure if no user
   if (!user) return { id: 'guest', name: 'Guest', role: UserType.CLIENT, favorites: [], notificationsEnabled: true };
-  
+
   const { data, error } = await supabase.from('profiles').select('*').eq('id', user.id).single();
-  
+
   if (error || !data) {
-      // If profile doesn't exist (first time), create it
-      const newP = { id: user.id, name: 'Guest', role: 'CLIENT' };
-      const { error: insertError } = await supabase.from('profiles').insert(newP);
-      if (insertError) console.error("Error creating profile", insertError);
-      return mapUser(newP);
+    // If profile doesn't exist (first time), create it
+    const newP = { id: user.id, name: 'Guest', role: 'CLIENT' };
+    const { error: insertError } = await supabase.from('profiles').insert(newP);
+    if (insertError) console.error("Error creating profile", insertError);
+    return mapUser(newP);
   }
   return mapUser(data);
 };
@@ -772,48 +772,48 @@ export const getMyProfile = async (): Promise<User> => {
 export const updateMyProfile = async (updates: Partial<User>): Promise<User> => {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return updates as User; // Cannot update guest
-  
+
   const dbUpdates: any = {};
   if (updates.name) dbUpdates.name = updates.name;
   if (updates.role) dbUpdates.role = updates.role;
   if (updates.favorites) dbUpdates.favorites = updates.favorites;
   if (updates.notificationsEnabled !== undefined) dbUpdates.notifications_enabled = updates.notificationsEnabled;
-  
+
   const { data, error } = await supabase.from('profiles').update(dbUpdates).eq('id', user.id).select().single();
   if (error) throw error;
   return mapUser(data);
 };
 
 export const toggleFavoriteVenue = async (venueId: string): Promise<string[]> => {
-    const p = await getMyProfile();
-    let favs = p.favorites || [];
-    if (favs.includes(venueId)) favs = favs.filter(f => f !== venueId);
-    else favs.push(venueId);
-    await updateMyProfile({ favorites: favs });
-    return favs;
+  const p = await getMyProfile();
+  let favs = p.favorites || [];
+  if (favs.includes(venueId)) favs = favs.filter(f => f !== venueId);
+  else favs.push(venueId);
+  await updateMyProfile({ favorites: favs });
+  return favs;
 };
 
 // ADMIN & AUDIT
 
 export const checkIsAdmin = async (email: string): Promise<boolean> => {
-    const { data } = await supabase.from('admin_users').select('*').eq('email', email).eq('is_active', true).single();
-    return !!data;
+  const { data } = await supabase.from('admin_users').select('*').eq('email', email).eq('is_active', true).single();
+  return !!data;
 };
 
 export const getAdminUsers = async (): Promise<AdminUser[]> => {
-    const { data, error } = await supabase.from('admin_users').select('*');
-    if (error) handleSupabaseError(error, 'getAdminUsers');
-    return (data || []).map(r => ({ id: r.id, authUserId: r.auth_user_id, email: r.email, role: r.role, isActive: r.is_active, createdAt: new Date(r.created_at).getTime() }));
+  const { data, error } = await supabase.from('admin_users').select('*');
+  if (error) handleSupabaseError(error, 'getAdminUsers');
+  return (data || []).map(r => ({ id: r.id, authUserId: r.auth_user_id, email: r.email, role: r.role, isActive: r.is_active, createdAt: new Date(r.created_at).getTime() }));
 };
 
 export const getAuditLogs = async (): Promise<AuditLog[]> => {
-    const { data, error } = await supabase.from('audit_logs').select('*').order('created_at', { ascending: false });
-    if (error) handleSupabaseError(error, 'getAuditLogs');
-    return (data || []).map(r => ({ id: r.id, actorId: r.actor_auth_user_id, action: r.action, entityType: r.entity_type, entityId: r.entity_id, metadata: r.metadata_json, createdAt: new Date(r.created_at).getTime() }));
+  const { data, error } = await supabase.from('audit_logs').select('*').order('created_at', { ascending: false });
+  if (error) handleSupabaseError(error, 'getAuditLogs');
+  return (data || []).map(r => ({ id: r.id, actorId: r.actor_auth_user_id, action: r.action, entityType: r.entity_type, entityId: r.entity_id, metadata: r.metadata_json, createdAt: new Date(r.created_at).getTime() }));
 };
 
 export const getAllUsers = async (): Promise<User[]> => {
-    const { data, error } = await supabase.from('profiles').select('*');
-    if (error) handleSupabaseError(error, 'getAllUsers');
-    return (data || []).map(mapUser);
+  const { data, error } = await supabase.from('profiles').select('*');
+  if (error) handleSupabaseError(error, 'getAllUsers');
+  return (data || []).map(mapUser);
 };
