@@ -48,6 +48,8 @@ const VendorDashboard = () => {
         isProcessingMenu,
         handleFileUpload,
         aiImageLoading,
+        aiImagePrompt,
+        setAiImagePrompt,
         handleAiImageAction,
         parsedItems,
         generatingImages,
@@ -186,6 +188,8 @@ const VendorDashboard = () => {
                 onSave={saveMenuItem}
                 onGenerateImage={handleAiImageAction}
                 isGeneratingImage={aiImageLoading}
+                aiImagePrompt={aiImagePrompt}
+                onAiPromptChange={setAiImagePrompt}
             />
         </div>
     );

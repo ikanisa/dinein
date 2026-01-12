@@ -220,6 +220,8 @@ export const useVendorMenuManager = ({ venue, setVenue }: UseVendorMenuManagerAr
     handleFileUpload,
     aiImageLoading,
     handleAiImageAction,
+    aiImagePrompt,
+    setAiImagePrompt,
     menuSearch,
     setMenuSearch,
     menuFilterCategory,

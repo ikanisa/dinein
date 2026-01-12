@@ -12,6 +12,8 @@ interface VendorMenuEditorSheetProps {
   onSave: () => void;
   onGenerateImage: () => void;
   isGeneratingImage: boolean;
+  aiImagePrompt: string;
+  onAiPromptChange: (value: string) => void;
 }
 
 export const VendorMenuEditorSheet: React.FC<VendorMenuEditorSheetProps> = ({
@@ -23,6 +25,8 @@ export const VendorMenuEditorSheet: React.FC<VendorMenuEditorSheetProps> = ({
   onSave,
   onGenerateImage,
   isGeneratingImage,
+  aiImagePrompt,
+  onAiPromptChange,
 }) => {
   if (!isOpen) return null;
 
@@ -55,6 +59,18 @@ export const VendorMenuEditorSheet: React.FC<VendorMenuEditorSheetProps> = ({
                 className="w-1/2 bg-surface-highlight border border-border p-3 rounded-xl text-foreground placeholder-muted"
               />
             </div>
+            <div className="space-y-1">
+              <label className="text-xs font-semibold uppercase tracking-widest text-muted">
+                AI prompt
+              </label>
+              <textarea
+                value={aiImagePrompt}
+                onChange={(event) => onAiPromptChange(event.target.value)}
+                rows={2}
+                placeholder="Describe the dish in a few words"
+                className="w-full bg-surface-highlight border border-border rounded-xl px-3 py-2 text-sm text-foreground placeholder-muted focus:outline-none focus:ring-2 focus:ring-secondary-500/40 focus:border-secondary-500"
+              />
+            </div>
             <div className="flex gap-2">
               <button
                 onClick={onGenerateImage}
@@ -68,7 +84,7 @@ export const VendorMenuEditorSheet: React.FC<VendorMenuEditorSheetProps> = ({
                 )}
               </button>
             </div>
-          </div>
+        </div>
         </div>
         <button
           onClick={onSave}
