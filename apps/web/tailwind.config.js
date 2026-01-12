@@ -21,17 +21,35 @@ export default {
                 border: 'var(--border-color)',
                 glass: "var(--glass-bg)",
                 glassBorder: "var(--glass-border)",
-                primary: "#3b82f6",
-                secondary: "#ec4899",
+                primary: {
+                    DEFAULT: 'var(--color-primary-500)',
+                    500: 'var(--color-primary-500)',
+                    600: 'var(--color-primary-600)'
+                },
+                secondary: {
+                    DEFAULT: 'var(--color-secondary-500)',
+                    500: 'var(--color-secondary-500)',
+                    600: 'var(--color-secondary-600)'
+                },
+                accent: {
+                    DEFAULT: 'var(--color-accent-500)',
+                    500: 'var(--color-accent-500)'
+                },
+                ink: 'var(--color-ink)',
             },
             backdropBlur: {
                 xs: '2px',
                 xl: '20px',
             },
             boxShadow: {
-                'glow': '0 0 20px rgba(59, 130, 246, 0.3)',
+                'glow': '0 0 24px rgba(255, 107, 53, 0.35)',
+            },
+            fontFamily: {
+                display: ['var(--font-display)', 'serif'],
+                body: ['var(--font-body)', 'system-ui', 'sans-serif'],
+                accent: ['var(--font-accent)', 'serif']
             }
-        },
+        }
     },
     plugins: [],
 }

@@ -60,7 +60,7 @@ export const UpdatePrompt: React.FC = () => {
 
   return (
     <div className="fixed bottom-0 left-0 right-0 z-50 p-4 pb-safe-bottom">
-      <GlassCard className="bg-blue-600/90 backdrop-blur-md border-blue-400/50 shadow-xl">
+      <GlassCard className="bg-gradient-to-r from-primary-500/90 to-secondary-500/90 backdrop-blur-md border-white/20 shadow-xl">
         <div className="flex items-start gap-3">
           <div className="flex-1">
             <h3 className="font-bold text-white text-sm mb-1">Update Available</h3>
@@ -77,7 +77,7 @@ export const UpdatePrompt: React.FC = () => {
             </button>
             <button
               onClick={handleUpdate}
-              className="px-4 py-1.5 text-xs font-bold bg-white text-blue-600 rounded-lg hover:bg-white/90 transition-colors touch-target"
+              className="px-4 py-1.5 text-xs font-bold bg-white text-ink rounded-lg hover:bg-white/90 transition-colors touch-target"
             >
               Update
             </button>
@@ -87,4 +87,3 @@ export const UpdatePrompt: React.FC = () => {
     </div>
   );
 };
-

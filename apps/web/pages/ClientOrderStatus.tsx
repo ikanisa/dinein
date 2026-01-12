@@ -58,7 +58,7 @@ const ClientOrderStatus = () => {
   const getStatusColor = (status: OrderStatus) => {
     switch (status) {
       case OrderStatus.RECEIVED:
-        return 'text-blue-500';
+        return 'text-secondary-600';
       case OrderStatus.SERVED:
         return 'text-green-500';
       case OrderStatus.CANCELLED:
@@ -100,7 +100,7 @@ const ClientOrderStatus = () => {
           <h2 className="text-2xl font-bold text-foreground mb-4">Order Not Found</h2>
           <button
             onClick={() => navigate('/')}
-            className="px-6 py-3 bg-blue-500 text-white rounded-xl font-bold"
+            className="px-6 py-3 bg-primary-500 text-white rounded-xl font-bold"
           >
             Go Home
           </button>
@@ -149,7 +149,7 @@ const ClientOrderStatus = () => {
 
           {/* Status Progress */}
           <div className="mt-4 space-y-2">
-            <div className={`flex items-center gap-2 ${(order.status === OrderStatus.RECEIVED) ? 'text-blue-500' : 'text-muted'}`}>
+            <div className={`flex items-center gap-2 ${(order.status === OrderStatus.RECEIVED) ? 'text-secondary-600' : 'text-muted'}`}>
               <span>{(order.status === OrderStatus.RECEIVED) ? '●' : '○'}</span>
               <span className="text-sm">Order Received</span>
             </div>
@@ -224,7 +224,7 @@ const ClientOrderStatus = () => {
                 // Navigate to payment or show payment options
                 toast('Payment options coming soon', { icon: 'ℹ️' });
               }}
-              className="w-full py-4 bg-blue-500 text-white rounded-xl font-bold"
+              className="w-full py-4 bg-primary-500 text-white rounded-xl font-bold"
             >
               Pay Now
             </button>
@@ -240,7 +240,7 @@ const ClientOrderStatus = () => {
         {/* Polling Indicator */}
         {polling && (
           <div className="text-center text-xs text-muted">
-            <span className="inline-block w-2 h-2 bg-blue-500 rounded-full animate-pulse mr-2"></span>
+            <span className="inline-block w-2 h-2 bg-primary-500 rounded-full animate-pulse mr-2"></span>
             Auto-updating...
           </div>
         )}
@@ -250,4 +250,3 @@ const ClientOrderStatus = () => {
 };
 
 export default ClientOrderStatus;
-

@@ -188,7 +188,7 @@ const InstallPrompt = () => {
       exit={{ y: 100, opacity: 0 }}
       className="fixed bottom-0 left-0 right-0 z-50 p-4 pb-safe-bottom"
     >
-      <GlassCard className="bg-gradient-to-r from-blue-600 to-purple-600 border-blue-400/50 shadow-xl">
+      <GlassCard className="bg-gradient-to-r from-primary-500 to-secondary-500 border-white/20 shadow-xl">
         <div className="flex items-start gap-3">
           <div className="flex-1">
             <h3 className="font-bold text-white text-sm mb-1">
@@ -218,7 +218,7 @@ const InstallPrompt = () => {
             {!isIOS && (
               <button
                 onClick={handleInstall}
-                className="px-4 py-2 text-xs font-bold bg-white text-blue-600 rounded-lg hover:bg-white/90 transition-colors touch-target"
+                className="px-4 py-2 text-xs font-bold bg-white text-ink rounded-lg hover:bg-white/90 transition-colors touch-target"
               >
                 Install
               </button>
@@ -284,7 +284,7 @@ const AnimatedRoutes = () => {
         <Suspense fallback={
           <div className="min-h-screen flex items-center justify-center bg-background">
             <div className="text-center">
-              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500 mx-auto mb-4"></div>
+              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-500 mx-auto mb-4"></div>
               <div className="text-muted">Loading...</div>
             </div>
           </div>
@@ -401,8 +401,8 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
           }
         }}
         className={`
-          flex flex-col items-center justify-center gap-1 flex-1 py-2 touch-target
-          ${isActive ? 'text-blue-500' : 'text-muted'}
+          flex flex-col items-center justify-center gap-1 flex-1 py-2 px-2 touch-target rounded-xl
+          ${isActive ? 'text-primary-600 bg-primary-500/10' : 'text-muted'}
           transition-colors
         `}
       >

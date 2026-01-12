@@ -348,6 +348,14 @@ h2 { font-size: 1.5rem; }
 h3 { font-size: 1.25rem; }
 h4 { font-size: 1.125rem; }
 
+h1,
+h2,
+h3,
+h4 {
+  font-family: var(--font-display);
+  letter-spacing: -0.01em;
+}
+
 /* ============================================================================
    Focus States for Accessibility
    ============================================================================ */
@@ -358,7 +366,7 @@ a:focus-visible,
 [role="button"]:focus-visible,
 input:focus-visible,
 textarea:focus-visible {
-  outline: 2px solid var(--primary, #3b82f6);
+  outline: 2px solid var(--color-secondary-500, #0077B6);
   outline-offset: 2px;
 }
 
@@ -436,3 +444,6 @@ a:focus:not(:focus-visible) {
   user-select: text;
 }
 
+.font-accent {
+  font-family: var(--font-accent);
+}

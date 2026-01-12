@@ -126,7 +126,7 @@ const ClientMenu = () => {
       if (venue.revolutHandle) {
           return { 
               name: 'Revolut Pay', 
-              color: 'bg-[#0075EB] shadow-blue-900/30', 
+              color: 'bg-secondary-500 shadow-secondary-500/30', 
               icon: 'R', 
               linkPrefix: 'https://revolut.me/',
               handle: venue.revolutHandle
@@ -224,9 +224,14 @@ const ClientMenu = () => {
             <div className="bg-surface-highlight p-4 rounded-xl flex justify-between items-center">
                 <div>
                     <div className="text-xs text-muted">Payment Reference</div>
-                    <div className="text-xl font-mono font-bold text-pink-500">{currentOrder.orderCode}</div>
+                    <div className="text-xl font-mono font-bold text-accent-500">{currentOrder.orderCode}</div>
                 </div>
-                <button onClick={() => copyToClipboard(currentOrder.orderCode)} className="px-3 py-1 bg-pink-500/20 text-pink-500 text-xs font-bold rounded">Copy</button>
+                <button
+                  onClick={() => copyToClipboard(currentOrder.orderCode)}
+                  className="px-3 py-1 bg-accent-500/15 text-accent-500 text-xs font-bold rounded border border-accent-500/30"
+                >
+                  Copy
+                </button>
             </div>
             <p className="text-xs text-center text-muted">Please include the reference code.</p>
           </div>
@@ -268,7 +273,7 @@ const ClientMenu = () => {
           
           {currentOrder.status !== OrderStatus.SERVED && (
               <div className="mb-8 flex flex-col items-center gap-2">
-                 <div className="animate-pulse bg-blue-500/20 text-blue-500 px-4 py-1 rounded-full text-xs font-bold border border-blue-500/30">
+                 <div className="animate-pulse bg-secondary-500/15 text-secondary-600 px-4 py-1 rounded-full text-xs font-bold border border-secondary-500/30">
                      STATUS: {currentOrder.status}
                  </div>
               </div>
@@ -276,7 +281,7 @@ const ClientMenu = () => {
 
           <div className="bg-surface-highlight px-8 py-4 rounded-2xl mb-8">
               <div className="text-xs text-muted uppercase tracking-widest mb-1">Your Code</div>
-              <div className="text-4xl font-mono font-bold text-blue-500">{currentOrder.orderCode}</div>
+              <div className="text-4xl font-mono font-bold text-secondary-600">{currentOrder.orderCode}</div>
           </div>
 
           <div className="flex gap-3">
@@ -338,7 +343,7 @@ const ClientMenu = () => {
              {venue.tags && venue.tags.length > 0 && (
                  <div className="flex gap-2 mt-2 overflow-x-auto no-scrollbar">
                      {venue.tags.map(t => (
-                         <span key={t} className="text-[10px] bg-blue-500/30 backdrop-blur-sm text-blue-100 px-2 py-0.5 rounded border border-blue-500/30 whitespace-nowrap">
+                         <span key={t} className="text-[10px] bg-secondary-500/30 backdrop-blur-sm text-white/90 px-2 py-0.5 rounded border border-secondary-500/30 whitespace-nowrap">
                              {t}
                          </span>
                      ))}
@@ -422,7 +427,7 @@ const ClientMenu = () => {
                         <span className="font-bold text-xl text-foreground">€{totalAmount.toFixed(2)}</span>
                     </div>
                 </div>
-                <div className="flex items-center gap-2 font-bold text-sm text-blue-500">
+                <div className="flex items-center gap-2 font-bold text-sm text-secondary-600">
                     View Order <span className="text-xl">→</span>
                 </div>
             </GlassCard>
@@ -456,7 +461,7 @@ const ClientMenu = () => {
                             if (e.target.value.trim()) setTableError(false);
                         }}
                         placeholder="e.g. 12 or TBL-ABCD"
-                        className={`w-full bg-background border p-3 rounded-lg text-foreground font-bold text-lg outline-none transition-colors ${tableError ? 'border-red-500 animate-pulse' : 'border-border focus:border-blue-500'}`}
+                        className={`w-full bg-background border p-3 rounded-lg text-foreground font-bold text-lg outline-none transition-colors ${tableError ? 'border-red-500 animate-pulse' : 'border-border focus:border-secondary-500'}`}
                     />
                     {tableError && (
                         <p className="text-red-400 text-xs mt-2 font-bold animate-pulse">Please enter your table number or code to proceed.</p>

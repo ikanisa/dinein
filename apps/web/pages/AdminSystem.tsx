@@ -27,9 +27,9 @@ const AdminSystem = () => {
 
       {tab === 'users' && (
           <div className="space-y-3">
-              <div className="bg-blue-500/10 border border-blue-500/30 p-4 rounded-xl mb-4">
-                  <h3 className="text-sm font-bold text-blue-500">Allowlist Enforced</h3>
-                  <p className="text-xs text-blue-500/70 mt-1">Only emails listed below can access this portal.</p>
+              <div className="bg-secondary-500/10 border border-secondary-500/30 p-4 rounded-xl mb-4">
+                  <h3 className="text-sm font-bold text-secondary-600">Allowlist Enforced</h3>
+                  <p className="text-xs text-secondary-600/80 mt-1">Only emails listed below can access this portal.</p>
               </div>
               {admins.map(admin => (
                   <GlassCard key={admin.id} className="flex justify-between items-center">

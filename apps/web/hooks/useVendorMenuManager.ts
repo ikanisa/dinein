@@ -1,0 +1,238 @@
+import { useCallback, useMemo, useState } from 'react';
+import { toast } from 'react-hot-toast';
+import { MenuItem, Venue } from '../types';
+import { updateVenueMenu, getVenueById } from '../services/databaseService';
+import { parseMenuFromFile, generateMenuItemImagePreview, generateMenuItemImage } from '../services/geminiService';
+
+interface UseVendorMenuManagerArgs {
+  venue: Venue | null;
+  setVenue: React.Dispatch<React.SetStateAction<Venue | null>>;
+}
+
+export const useVendorMenuManager = ({ venue, setVenue }: UseVendorMenuManagerArgs) => {
+  const [menuModalOpen, setMenuModalOpen] = useState(false);
+  const [editingItem, setEditingItem] = useState<Partial<MenuItem>>({});
+
+  const [aiImagePrompt, setAiImagePrompt] = useState('');
+  const [aiImageMode] = useState<'generate' | 'edit'>('generate');
+  const [aiImageLoading, setAiImageLoading] = useState(false);
+
+  const [menuSearch, setMenuSearch] = useState('');
+  const [menuFilterCategory, setMenuFilterCategory] = useState('All');
+  const [menuFilterStatus, setMenuFilterStatus] = useState<'all' | 'active' | 'hidden'>('all');
+  const [menuFilterTag, setMenuFilterTag] = useState('All');
+
+  const [isProcessingMenu, setIsProcessingMenu] = useState(false);
+  const [parsedItems, setParsedItems] = useState<MenuItem[] | null>(null);
+  const [generatingImages, setGeneratingImages] = useState(false);
+
+  const filteredMenuItems = useMemo(() => {
+    if (!venue) return [];
+
+    return venue.menu.filter((item) => {
+      const matchesSearch = item.name.toLowerCase().includes(menuSearch.toLowerCase());
+      const matchesCategory = menuFilterCategory === 'All' || item.category === menuFilterCategory;
+      const matchesStatus =
+        menuFilterStatus === 'all' ? true : menuFilterStatus === 'active' ? item.available : !item.available;
+      const matchesTag =
+        menuFilterTag === 'All' || (item.tags && item.tags.includes(menuFilterTag));
+
+      return matchesSearch && matchesCategory && matchesStatus && matchesTag;
+    });
+  }, [menuFilterCategory, menuFilterStatus, menuFilterTag, menuSearch, venue]);
+
+  const menuCategories = useMemo(() => {
+    if (!venue) return ['All'];
+    const categories = venue.menu.map((item) => item.category || 'Other');
+    return ['All', ...Array.from(new Set(categories))];
+  }, [venue]);
+
+  const menuTags = useMemo(() => {
+    if (!venue) return ['All'];
+    const tags = venue.menu.flatMap((item) => item.tags || []);
+    return ['All', ...Array.from(new Set(tags))];
+  }, [venue]);
+
+  const openNewItem = useCallback(() => {
+    setEditingItem({ id: `new-${Date.now()}`, available: true, options: [], tags: [] });
+    setMenuModalOpen(true);
+  }, []);
+
+  const openEditItem = useCallback((item: MenuItem) => {
+    setEditingItem(item);
+    setMenuModalOpen(true);
+  }, []);
+
+  const closeMenuModal = useCallback(() => {
+    setMenuModalOpen(false);
+  }, []);
+
+  const saveMenuItem = useCallback(async () => {
+    if (!venue || !editingItem.name) return;
+
+    const itemWithImage = { ...editingItem };
+    const newItem = {
+      ...itemWithImage,
+      price: itemWithImage.price || 0,
+      category: itemWithImage.category || 'Mains',
+      available: itemWithImage.available ?? true,
+      options: itemWithImage.options || [],
+      tags: itemWithImage.tags || [],
+    } as MenuItem;
+
+    const newMenu = editingItem.id?.startsWith('new')
+      ? [...venue.menu, newItem]
+      : venue.menu.map((i) => (i.id === newItem.id ? newItem : i));
+
+    await updateVenueMenu(venue.id, newMenu);
+
+    const updatedVenue = await getVenueById(venue.id);
+    if (updatedVenue) {
+      setVenue(updatedVenue);
+    } else {
+      setVenue({ ...venue, menu: newMenu });
+    }
+
+    setMenuModalOpen(false);
+    toast.success(`Menu item saved${!itemWithImage.imageUrl ? ' (generating image...)' : ''}`);
+  }, [editingItem, setVenue, venue]);
+
+  const toggleItemAvailability = useCallback(
+    async (event: React.MouseEvent, item: MenuItem) => {
+      event.stopPropagation();
+      if (!venue) return;
+
+      const updatedMenu = venue.menu.map((i) =>
+        i.id === item.id ? { ...i, available: !i.available } : i
+      );
+
+      setVenue({ ...venue, menu: updatedMenu });
+
+      try {
+        await updateVenueMenu(venue.id, updatedMenu);
+        toast.success(`${item.name} is now ${!item.available ? 'Active' : 'Hidden'}`);
+      } catch (err) {
+        toast.error('Failed to update status');
+      }
+    },
+    [setVenue, venue]
+  );
+
+  const handleAiImageAction = useCallback(async () => {
+    if (!aiImagePrompt) return;
+    setAiImageLoading(true);
+
+    try {
+      const serviceMethod =
+        aiImageMode === 'generate' || !editingItem.imageUrl
+          ? generateMenuItemImage(editingItem.name || 'Food', aiImagePrompt, '', '')
+          : generateMenuItemImage(editingItem.name || 'Food', aiImagePrompt, '', '');
+
+      const url = await serviceMethod;
+      if (url) setEditingItem({ ...editingItem, imageUrl: url });
+
+      toast.success('Image generated!');
+    } catch (e) {
+      toast.error('AI processing failed. Check quota.');
+    }
+
+    setAiImageLoading(false);
+    setAiImagePrompt('');
+  }, [aiImageMode, aiImagePrompt, editingItem]);
+
+  const handleFileUpload = useCallback(async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    if (!file.type.startsWith('image/') && file.type !== 'application/pdf') {
+      toast.error('Please upload an image or PDF file.');
+      return;
+    }
+
+    setIsProcessingMenu(true);
+    const reader = new FileReader();
+    reader.onloadend = async () => {
+      const base64Full = reader.result as string;
+      const base64Data = base64Full.split(',')[1];
+      const extracted = await parseMenuFromFile(base64Data, file.type);
+
+      const mappedItems: MenuItem[] = extracted.map((ex: any, idx: number) => ({
+        id: `imported-${Date.now()}-${idx}`,
+        name: ex.name,
+        description: ex.description || '',
+        price: ex.price,
+        category: ex.category || 'Mains',
+        available: true,
+        options: [],
+        tags: [],
+      }));
+
+      setParsedItems(mappedItems);
+      setIsProcessingMenu(false);
+      toast.success(`Extracted ${mappedItems.length} items`);
+
+      event.currentTarget.value = '';
+    };
+
+    reader.readAsDataURL(file);
+  }, []);
+
+  const generateImagesForImport = useCallback(async () => {
+    if (!parsedItems || !venue) return;
+    setGeneratingImages(true);
+
+    const updatedItems = [...parsedItems];
+    for (let i = 0; i < updatedItems.length; i++) {
+      if (!updatedItems[i].imageUrl) {
+        const url = await generateMenuItemImagePreview(
+          updatedItems[i].name,
+          updatedItems[i].description || ''
+        );
+        if (url) updatedItems[i].imageUrl = url;
+        setParsedItems([...updatedItems]);
+      }
+    }
+
+    setGeneratingImages(false);
+    toast.success('Images generated');
+  }, [parsedItems, venue]);
+
+  const confirmImport = useCallback(async () => {
+    if (!venue || !parsedItems) return;
+    const combinedMenu = [...venue.menu, ...parsedItems];
+    await updateVenueMenu(venue.id, combinedMenu);
+    setVenue({ ...venue, menu: combinedMenu });
+    setParsedItems(null);
+    toast.success('Menu updated successfully');
+  }, [parsedItems, setVenue, venue]);
+
+  return {
+    menuModalOpen,
+    editingItem,
+    setEditingItem,
+    openNewItem,
+    openEditItem,
+    closeMenuModal,
+    saveMenuItem,
+    toggleItemAvailability,
+    filteredMenuItems,
+    isProcessingMenu,
+    handleFileUpload,
+    aiImageLoading,
+    handleAiImageAction,
+    menuSearch,
+    setMenuSearch,
+    menuFilterCategory,
+    setMenuFilterCategory,
+    menuFilterStatus,
+    setMenuFilterStatus,
+    menuFilterTag,
+    setMenuFilterTag,
+    menuCategories,
+    menuTags,
+    parsedItems,
+    generatingImages,
+    generateImagesForImport,
+    confirmImport,
+  };
+};

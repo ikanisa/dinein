@@ -2,6 +2,8 @@ import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { GlassCard } from '../components/GlassCard';
 import { VenueListSkeleton } from '../components/Loading';
+import { Badge } from '../components/ui/Badge';
+import { SectionHeader } from '../components/ui/SectionHeader';
 import { getAllVenues, toggleFavoriteVenue, getMyProfile } from '../services/databaseService';
 import { Venue } from '../types';
 
@@ -60,10 +62,11 @@ const ClientExplore = () => {
 
   return (
     <div className="p-6 pb-24 space-y-6 animate-fade-in pt-safe-top">
-       <header>
-         <h1 className="text-3xl font-bold mb-1">Explore</h1>
-         <p className="text-muted">Discover the finest liquid spots.</p>
-       </header>
+       <SectionHeader
+         title="Explore"
+         subtitle="Discover the finest liquid spots."
+         level={1}
+       />
 
        {/* Search Bar / AI Concierge */}
        <div className="relative">
@@ -71,14 +74,14 @@ const ClientExplore = () => {
          <input 
            type="text" 
            placeholder="Try: 'Romantic dinner in Sliema'..." 
-           className="w-full bg-surface border border-border rounded-xl py-3 pl-10 pr-12 text-foreground focus:outline-none focus:border-purple-500 transition-colors"
+           className="w-full bg-surface border border-border rounded-xl py-3 pl-10 pr-12 text-foreground focus:outline-none focus:border-secondary-500 transition-colors"
            value={searchTerm}
            onChange={e => { setSearchTerm(e.target.value); if(e.target.value === '') setAiMode(false); }}
            onKeyDown={(e) => e.key === 'Enter' && handleAiSearch()}
          />
          <button 
             onClick={handleAiSearch}
-            className="absolute right-2 top-2 bg-purple-600/80 p-1.5 rounded-lg text-xs font-bold text-white"
+            className="absolute right-2 top-2 bg-primary-500/90 p-1.5 rounded-lg text-xs font-bold text-white"
          >
              GO
          </button>
@@ -87,11 +90,11 @@ const ClientExplore = () => {
        {/* AI Results Section */}
        {aiMode && (
            <div className="animate-fade-in">
-               <h3 className="font-bold text-purple-400 mb-2">Virtual Concierge</h3>
+               <h3 className="font-bold text-secondary-600 mb-2">Virtual Concierge</h3>
                {aiLoading ? (
                    <div className="p-8 text-center text-muted animate-pulse">Finding the best options...</div>
                ) : (
-                   <GlassCard className="bg-purple-900/10 border-purple-500/30">
+                   <GlassCard className="bg-secondary-500/10 border-secondary-500/30">
                        <div className="text-sm whitespace-pre-line mb-4 text-foreground">{aiResponse?.text}</div>
                        
                        {/* Grounding Sources (Google Maps) */}
@@ -151,7 +154,7 @@ const ClientExplore = () => {
               </div>
               <p className="text-xs text-muted mb-2">{venue.address}</p>
               <div className="flex items-center gap-2 text-xs">
-                 <span className="bg-blue-500/20 text-blue-300 px-2 py-1 rounded">⭐ 4.8</span>
+                 <Badge tone="secondary">⭐ 4.8</Badge>
                  <span className="text-muted">•</span>
                  <span className="text-muted">Bar & Grill</span>
               </div>

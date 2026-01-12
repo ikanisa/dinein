@@ -53,7 +53,7 @@ const ClientProfile = () => {
        </header>
 
        <GlassCard className="flex items-center gap-4">
-          <div className="w-16 h-16 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center text-2xl font-bold text-white">
+          <div className="w-16 h-16 rounded-full bg-gradient-to-br from-secondary-500 to-primary-500 flex items-center justify-center text-2xl font-bold text-white">
              {user.name ? user.name.charAt(0).toUpperCase() : '?'}
           </div>
           <div className="flex-1">
@@ -63,7 +63,7 @@ const ClientProfile = () => {
                value={user.name} 
                onChange={e => updateName(e.target.value)}
                onBlur={saveName}
-               className="bg-transparent border-b border-border w-full focus:outline-none focus:border-blue-500 py-1 font-bold text-foreground"
+               className="bg-transparent border-b border-border w-full focus:outline-none focus:border-secondary-500 py-1 font-bold text-foreground"
              />
           </div>
        </GlassCard>
@@ -84,7 +84,7 @@ const ClientProfile = () => {
                 <span>{theme === 'dark' ? '🌑 Dark Mode' : '☀️ Light Mode'}</span>
                 <button 
                   onClick={toggleTheme}
-                  className={`w-12 h-6 rounded-full p-1 transition-colors ${theme === 'dark' ? 'bg-blue-600' : 'bg-gray-400'}`}
+                  className={`w-12 h-6 rounded-full p-1 transition-colors ${theme === 'dark' ? 'bg-secondary-500' : 'bg-gray-400'}`}
                 >
                   <div className={`w-4 h-4 rounded-full bg-white transition-transform ${theme === 'dark' ? 'translate-x-6' : ''}`} />
                 </button>

@@ -45,7 +45,7 @@ const VendorLogin = () => {
         <div className="absolute inset-0 bg-gradient-to-t from-background via-background/80 to-transparent pointer-events-none"></div>
         
         {/* Subtle animated glow */}
-        <div className="absolute top-[-10%] right-[-10%] w-[500px] h-[500px] bg-blue-500/10 rounded-full blur-[120px] pointer-events-none"></div>
+        <div className="absolute top-[-10%] right-[-10%] w-[500px] h-[500px] bg-primary-500/10 rounded-full blur-[120px] pointer-events-none"></div>
 
         <div className="z-10 flex-1 flex flex-col justify-end pb-12 w-full max-w-md mx-auto animate-slide-up">
             
@@ -57,7 +57,7 @@ const VendorLogin = () => {
                 </div>
                 <h1 className="text-5xl font-bold text-foreground tracking-tighter mb-3 leading-[1.1]">
                     Run your <br/> 
-                    <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-500 to-indigo-500">venue smarter.</span>
+                    <span className="text-transparent bg-clip-text bg-gradient-to-r from-primary-500 to-secondary-500">venue smarter.</span>
                 </h1>
                 <p className="text-muted text-lg max-w-xs font-medium leading-relaxed">
                     Access your vendor dashboard. Contact admin to create an account.
@@ -74,7 +74,7 @@ const VendorLogin = () => {
                             required
                             value={email}
                             onChange={(e) => setEmail(e.target.value)}
-                            className="w-full bg-surface-highlight border border-border rounded-xl p-4 mt-2 focus:outline-none focus:border-blue-500 text-foreground transition-all"
+                            className="w-full bg-surface-highlight border border-border rounded-xl p-4 mt-2 focus:outline-none focus:border-secondary-500 text-foreground transition-all"
                             placeholder="vendor@example.com"
                         />
                     </div>
@@ -85,7 +85,7 @@ const VendorLogin = () => {
                             required
                             value={password}
                             onChange={(e) => setPassword(e.target.value)}
-                            className="w-full bg-surface-highlight border border-border rounded-xl p-4 mt-2 focus:outline-none focus:border-blue-500 text-foreground transition-all"
+                            className="w-full bg-surface-highlight border border-border rounded-xl p-4 mt-2 focus:outline-none focus:border-secondary-500 text-foreground transition-all"
                             placeholder="••••••••"
                         />
                     </div>
@@ -99,7 +99,7 @@ const VendorLogin = () => {
                     <button 
                         type="submit"
                         disabled={loading}
-                        className="w-full py-4 bg-foreground text-background font-bold rounded-xl shadow-[0_0_20px_rgba(0,0,0,0.1)] dark:shadow-[0_0_20px_rgba(255,255,255,0.15)] transition-all active:scale-[0.98] flex justify-center items-center gap-2"
+                        className="w-full py-4 bg-gradient-to-r from-primary-500 to-secondary-500 text-white font-bold rounded-xl shadow-glow transition-all active:scale-[0.98] flex justify-center items-center gap-2"
                     >
                         {loading ? <Spinner className="w-4 h-4" /> : 'Sign In'}
                     </button>
@@ -122,7 +122,7 @@ const VendorLogin = () => {
 };
 
 const FeatureItem = ({ icon, label }: { icon: string, label: string }) => (
-    <div className="bg-surface-highlight rounded-lg p-3 flex flex-col items-center justify-center text-center gap-1 border border-border hover:bg-black/5 dark:hover:bg-white/10 transition-colors">
+    <div className="bg-surface-highlight rounded-lg p-3 flex flex-col items-center justify-center text-center gap-1 border border-border hover:bg-secondary-500/10 dark:hover:bg-white/10 transition-colors">
         <span className="text-xl filter drop-shadow-md">{icon}</span>
         <span className="text-[10px] text-muted font-bold uppercase tracking-wider">{label}</span>
     </div>

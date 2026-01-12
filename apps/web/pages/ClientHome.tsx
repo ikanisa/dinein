@@ -65,11 +65,11 @@ const NearbyVenueCard = ({ place, index, registeredVenue, currency }: { place: a
                      <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-transparent to-transparent opacity-90" />
                      
                      <div className="absolute top-4 right-4 flex gap-2">
-                         {isVerified && (
-                             <div className="bg-blue-600 px-3 py-1 rounded-full text-xs font-bold text-white border border-white/10 flex items-center gap-1 shadow-glow">
-                                 ✓ Verified
-                             </div>
-                         )}
+                        {isVerified && (
+                            <div className="bg-primary-500 px-3 py-1 rounded-full text-xs font-bold text-white border border-white/10 flex items-center gap-1 shadow-glow">
+                                ✓ Verified
+                            </div>
+                        )}
                          <div className="bg-black/40 backdrop-blur-md px-3 py-1 rounded-full text-xs font-bold text-white border border-white/10 flex items-center gap-1">
                              <span className="text-yellow-400">★</span> 
                              {place.rating || 'New'}
@@ -336,7 +336,7 @@ const ClientHome = () => {
                   {uiContext.appName}
                 </h1>
             </div>
-            <div className="w-10 h-10 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 p-0.5">
+            <div className="w-10 h-10 rounded-full bg-gradient-to-br from-secondary-500 to-primary-500 p-0.5">
                 <div className="w-full h-full rounded-full bg-surface flex items-center justify-center font-bold text-xs text-foreground">
                     ME
                 </div>
@@ -349,14 +349,14 @@ const ClientHome = () => {
             
             {/* Persistent Location Request Card - If user hasn't granted permission */}
             {!loading && locationStatus !== 'granted' && locationStatus !== 'denied' && (
-                <GlassCard className="bg-blue-900/10 border-blue-500/20 flex items-center justify-between p-4">
+                <GlassCard className="bg-secondary-500/10 border-secondary-500/30 flex items-center justify-between p-4">
                     <div>
-                        <h3 className="font-bold text-blue-400 text-sm">Find spots near you</h3>
-                        <p className="text-xs text-blue-300/70">Enable location for the best experience.</p>
+                        <h3 className="font-bold text-secondary-600 text-sm">Find spots near you</h3>
+                        <p className="text-xs text-secondary-600/80">Enable location for the best experience.</p>
                     </div>
                     <button 
                         onClick={requestLocationPermission}
-                        className="px-4 py-2 bg-blue-600 text-white text-xs font-bold rounded-full shadow-lg active:scale-95 transition-transform"
+                        className="px-4 py-2 bg-primary-500 text-white text-xs font-bold rounded-full shadow-lg active:scale-95 transition-transform"
                     >
                         Enable
                     </button>
@@ -426,7 +426,7 @@ const ClientHome = () => {
             )}
 
             {/* Quick Action */}
-            <GlassCard className="bg-gradient-to-r from-blue-900/40 to-purple-900/40 border-blue-500/30 p-6 flex flex-col items-center text-center mt-8">
+            <GlassCard className="bg-gradient-to-r from-secondary-500/30 to-primary-500/30 border-secondary-500/30 p-6 flex flex-col items-center text-center mt-8">
                 <h3 className="font-bold text-xl mb-2 text-white">Already at a table?</h3>
                 <p className="text-sm text-gray-200 mb-6">Scan the QR code on your table to skip the queue.</p>
                 <button className="w-full py-4 bg-white text-black font-bold rounded-2xl shadow-xl active:scale-95 transition-transform flex items-center justify-center gap-2">

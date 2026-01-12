@@ -23,18 +23,18 @@ const AdminOrders = () => {
 
       <div className="space-y-3">
           {orders.map(order => (
-              <GlassCard key={order.id} className="flex justify-between items-center border-l-4 border-blue-500">
+              <GlassCard key={order.id} className="flex justify-between items-center border-l-4 border-primary-500">
                   <div>
                       <div className="font-bold text-lg">€{order.totalAmount.toFixed(2)}</div>
                       <div className="text-xs text-gray-400 flex items-center gap-2">
-                          <span className="font-mono text-blue-300">{order.orderCode}</span>
+                          <span className="font-mono text-secondary-600">{order.orderCode}</span>
                           <span>•</span>
                           <span>{new Date(order.timestamp).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</span>
                       </div>
                       <div className="text-[10px] text-gray-500 mt-1">{order.venueId}</div>
                   </div>
                   <div className="text-right">
-                       <div className={`text-xs font-bold uppercase mb-1 ${order.status === 'SERVED' ? 'text-green-400' : 'text-blue-400'}`}>{order.status}</div>
+                       <div className={`text-xs font-bold uppercase mb-1 ${order.status === 'SERVED' ? 'text-green-400' : 'text-secondary-600'}`}>{order.status}</div>
                        <div className={`px-2 py-0.5 rounded text-[10px] font-bold inline-block ${order.paymentStatus === 'PAID' ? 'bg-green-500/10 text-green-500' : 'bg-red-500/10 text-red-500'}`}>
                            {order.paymentStatus}
                        </div>

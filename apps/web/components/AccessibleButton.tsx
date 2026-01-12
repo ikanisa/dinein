@@ -50,14 +50,15 @@ export const AccessibleButton: React.FC<AccessibleButtonProps> = ({
     focus:outline-none focus:ring-2 focus:ring-offset-2
     disabled:opacity-50 disabled:cursor-not-allowed
     min-h-[44px] min-w-[44px] /* WCAG touch target minimum */
+    rounded-xl
     ${fullWidth ? 'w-full' : ''}
   `;
 
   const variantClasses = {
-    primary: 'bg-blue-600 text-white hover:bg-blue-700 focus:ring-blue-500 active:bg-blue-800',
-    secondary: 'bg-gray-600 text-white hover:bg-gray-700 focus:ring-gray-500 active:bg-gray-800',
+    primary: 'bg-primary-500 text-white hover:bg-primary-600 focus:ring-primary-500 active:bg-primary-600',
+    secondary: 'bg-secondary-500 text-white hover:bg-secondary-600 focus:ring-secondary-500 active:bg-secondary-600',
     danger: 'bg-red-600 text-white hover:bg-red-700 focus:ring-red-500 active:bg-red-800',
-    ghost: 'bg-transparent text-foreground hover:bg-surface-highlight focus:ring-gray-500',
+    ghost: 'bg-transparent text-foreground hover:bg-surface-highlight focus:ring-secondary-500',
   };
 
   const sizeClasses = {
@@ -82,4 +83,3 @@ export const AccessibleButton: React.FC<AccessibleButtonProps> = ({
     </button>
   );
 };
-

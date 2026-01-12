@@ -18,10 +18,10 @@ const DeveloperSwitchboard = () => {
           onClick={() => navigate('/')} 
           className="group relative overflow-hidden rounded-2xl p-1 transition-transform hover:scale-105"
         >
-          <div className="absolute inset-0 bg-gradient-to-r from-blue-500 to-cyan-500 opacity-10 group-hover:opacity-20 transition-opacity" />
-          <GlassCard className="relative bg-surface hover:bg-surface-highlight h-32 flex flex-col items-center justify-center border-blue-500/30">
+          <div className="absolute inset-0 bg-gradient-to-r from-secondary-500 to-primary-500 opacity-10 group-hover:opacity-20 transition-opacity" />
+          <GlassCard className="relative bg-surface hover:bg-surface-highlight h-32 flex flex-col items-center justify-center border-secondary-500/30">
             <span className="text-4xl mb-2">📱</span>
-            <span className="font-bold text-xl text-blue-500">Client App</span>
+            <span className="font-bold text-xl text-secondary-600">Client App</span>
             <span className="text-xs text-muted">Order, Browse, Pay</span>
           </GlassCard>
         </button>
@@ -31,10 +31,10 @@ const DeveloperSwitchboard = () => {
           onClick={() => navigate('/vendor-login')} 
           className="group relative overflow-hidden rounded-2xl p-1 transition-transform hover:scale-105"
         >
-          <div className="absolute inset-0 bg-gradient-to-r from-pink-500 to-purple-500 opacity-10 group-hover:opacity-20 transition-opacity" />
-          <GlassCard className="relative bg-surface hover:bg-surface-highlight h-32 flex flex-col items-center justify-center border-pink-500/30">
+          <div className="absolute inset-0 bg-gradient-to-r from-accent-500 to-primary-500 opacity-10 group-hover:opacity-20 transition-opacity" />
+          <GlassCard className="relative bg-surface hover:bg-surface-highlight h-32 flex flex-col items-center justify-center border-accent-500/30">
             <span className="text-4xl mb-2">🏪</span>
-            <span className="font-bold text-xl text-pink-500">Vendor Portal</span>
+            <span className="font-bold text-xl text-accent-500">Vendor Portal</span>
             <span className="text-xs text-muted">Manage Menu, Orders, QRs</span>
           </GlassCard>
         </button>
