@@ -10,11 +10,20 @@ node_modules/
 
 # Build outputs
 dist/
-dist-ssr/
 build/
+.output/
 out/
 .next/
 .vercel
+
+# Capacitor
+android/
+ios/
+.capacitor/
+
+# Firebase
+.firebase/
+firebase-debug.log
 
 # Logs
 logs
@@ -31,6 +40,7 @@ lerna-debug.log*
 .env.local
 .env.*.local
 .env.keys
+.env.production
 
 # Editor directories and files
 .vscode/*
@@ -61,10 +71,3 @@ next-env.d.ts
 # Misc
 *.pem
 *.local
-
-# Archives (optional - uncomment if you don't want to track zip files)
-# *.zip
-
-
-
-

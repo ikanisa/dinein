@@ -12,7 +12,7 @@ This is a **monorepo with a single deployable app** (`apps/web`) that serves thr
 
 ### Key Features
 
-- ✅ Single PWA deployment (Cloudflare Pages)
+- ✅ Single PWA deployment (Firebase Hosting)
 - ✅ Role-based routing with frontend guards + Supabase RLS
 - ✅ Anonymous authentication for public access
 - ✅ Google OAuth for admin access
@@ -24,20 +24,22 @@ This is a **monorepo with a single deployable app** (`apps/web`) that serves thr
 ## Project Structure
 
 ```
-dinein-malta/
+dinein/
 ├── apps/
-│   └── web/                  # Single PWA application
-│       ├── pages/            # Route components
-│       ├── components/       # Reusable components
-│       ├── context/           # React contexts (Auth, Cart, Theme)
-│       ├── services/          # API services (Supabase, Gemini, etc.)
-│       └── public/            # Static assets, icons, manifest, _redirects
+│   └── web/                   # Single PWA application
+│       ├── src/               # Source code
+│       │   ├── pages/         # Route components
+│       │   ├── components/    # Reusable components
+│       │   ├── context/       # React contexts
+│       │   └── services/      # API services
+│       └── public/            # Static assets, icons, manifest
 ├── supabase/
 │   ├── migrations/            # Database migrations
-│   └── functions/            # Edge functions
-├── docs/                     # Documentation
-├── packages/                  # Shared packages (empty for now)
-└── scripts/                  # Utility scripts
+│   ├── functions/             # Edge functions
+│   ├── seed/                  # Seed data
+│   └── scripts/               # Utility scripts
+├── docs/                      # Documentation
+└── scripts/                   # Dev scripts
 ```
 
 ## Getting Started
@@ -88,40 +90,19 @@ npm test           # Run tests
 
 ## Deployment
 
-### Deploy to Cloudflare Pages
+See [Deployment Guide](./docs/DEPLOYMENT.md) for detailed instructions.
 
-1. **Connect Repository**
-   - Go to Cloudflare Dashboard → Pages
-   - Connect your Git repository
+### Quick Deploy to Firebase
 
-2. **Build Settings**
-   - **Framework preset**: Vite
-   - **Build command**: `cd apps/web && npm install && npm run build`
-   - **Build output directory**: `apps/web/dist`
-   - **Root directory**: (leave empty, or set to repo root)
-
-3. **Environment Variables**
-   Set in Cloudflare Pages dashboard:
-   - `VITE_SUPABASE_URL`
-   - `VITE_SUPABASE_ANON_KEY`
-   - `GEMINI_API_KEY` (if needed client-side)
-
-4. **Deploy**
-   - Push to main branch triggers automatic deployment
-   - Or deploy manually from dashboard
-
-### SPA Routing
-
-The `_redirects` file in `apps/web/public/` ensures all routes work:
+```bash
+cd apps/web
+npm run build
+firebase deploy --only hosting
 ```
-/* /index.html 200
-```
-
-This is automatically copied to `dist/` during build.
 
 ### Custom Domain
 
-1. Add custom domain in Cloudflare Pages
+1. Add custom domain in Firebase Hosting console
 2. Update DNS records as instructed
 3. SSL certificate auto-provisioned
 
@@ -239,7 +220,8 @@ npm run test:coverage
 
 - [User Journeys](./docs/user-journeys.md) - Complete user flows
 - [Production Readiness](./docs/production-readiness.md) - Production checklist
-- [Audit Summary](./AUDIT_SUMMARY.md) - Repository audit
+- [Deployment Guide](./docs/DEPLOYMENT.md) - Deployment instructions
+- [Changelog](./docs/CHANGELOG.md) - Version history
 
 ## License
 
