@@ -26,6 +26,7 @@ interface VendorMenuTabProps {
   generatingImages: boolean;
   onGenerateImages: () => void;
   onConfirmImport: () => void;
+  isImporting: boolean;
 }
 
 export const VendorMenuTab: React.FC<VendorMenuTabProps> = ({
@@ -51,6 +52,7 @@ export const VendorMenuTab: React.FC<VendorMenuTabProps> = ({
   generatingImages,
   onGenerateImages,
   onConfirmImport,
+  isImporting,
 }) => {
   const statusOptions: Array<{ value: 'all' | 'active' | 'hidden'; label: string }> = [
     { value: 'all', label: 'All' },
@@ -156,16 +158,17 @@ export const VendorMenuTab: React.FC<VendorMenuTabProps> = ({
             <div className="flex items-center gap-2">
               <button
                 onClick={onGenerateImages}
-                disabled={generatingImages}
+                disabled={generatingImages || isImporting}
                 className="px-3 py-1.5 text-xs font-semibold rounded-full border border-accent-500/40 text-accent-500 hover:bg-accent-500/10 disabled:opacity-60"
               >
                 {generatingImages ? 'Generating...' : 'Auto-generate images'}
               </button>
               <button
                 onClick={onConfirmImport}
-                className="px-3 py-1.5 text-xs font-semibold rounded-full bg-primary-500 text-white shadow-lg shadow-primary-500/20"
+                disabled={isImporting}
+                className={`px-3 py-1.5 text-xs font-semibold rounded-full ${isImporting ? 'bg-secondary-500/60 text-white cursor-wait' : 'bg-primary-500 text-white shadow-lg shadow-primary-500/20'}`}
               >
-                Add to menu
+                {isImporting ? 'Adding...' : 'Add to menu'}
               </button>
             </div>
           </div>

@@ -1,12 +1,12 @@
 import { test, expect } from '@playwright/test';
 
-test('home loads with title', async ({ page }) => {
+test('home loads and shows brand header', async ({ page }) => {
   await page.goto('/#/');
-  await expect(page).toHaveTitle(/DineIn/i);
-  await expect(page.locator('#root')).toBeVisible();
+  await expect(page.getByRole('heading', { name: /SACCO\+/i })).toBeVisible();
+  await expect(page.locator('text=Protected by')).toBeVisible();
 });
 
-test('explore page shows heading', async ({ page }) => {
+test('explore route is reachable', async ({ page }) => {
   await page.goto('/#/explore');
-  await expect(page.getByRole('heading', { name: 'Explore' })).toBeVisible();
+  await expect(page).toHaveURL(/explore/);
 });

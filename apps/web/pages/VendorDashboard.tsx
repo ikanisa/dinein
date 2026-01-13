@@ -55,6 +55,7 @@ const VendorDashboard = () => {
         generatingImages,
         generateImagesForImport,
         confirmImport,
+        isImporting,
         menuSearch,
         setMenuSearch,
         menuFilterCategory,
@@ -152,6 +153,7 @@ const VendorDashboard = () => {
                         generatingImages={generatingImages}
                         onGenerateImages={generateImagesForImport}
                         onConfirmImport={confirmImport}
+                        isImporting={isImporting}
                     />
                 )}
 

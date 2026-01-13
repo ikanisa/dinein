@@ -1,7 +1,7 @@
 import { useCallback, useMemo, useState } from 'react';
 import { toast } from 'react-hot-toast';
 import { MenuItem, Venue } from '../types';
-import { updateVenueMenu, getVenueById } from '../services/databaseService';
+import { updateVenueMenu, getVenueById, createMenuItem } from '../services/databaseService';
 import { parseMenuFromFile, generateMenuItemImagePreview, generateMenuItemImage } from '../services/geminiService';
 
 interface UseVendorMenuManagerArgs {
@@ -197,13 +197,41 @@ export const useVendorMenuManager = ({ venue, setVenue }: UseVendorMenuManagerAr
     toast.success('Images generated');
   }, [parsedItems, venue]);
 
+  const [isImporting, setIsImporting] = useState(false);
+
   const confirmImport = useCallback(async () => {
-    if (!venue || !parsedItems) return;
-    const combinedMenu = [...venue.menu, ...parsedItems];
-    await updateVenueMenu(venue.id, combinedMenu);
-    setVenue({ ...venue, menu: combinedMenu });
-    setParsedItems(null);
-    toast.success('Menu updated successfully');
+    if (!venue || !parsedItems || parsedItems.length === 0) return;
+    setIsImporting(true);
+
+    try {
+      for (const item of parsedItems) {
+        const payload = {
+          name: item.name || 'New Menu Item',
+          description: item.description || '',
+          price: item.price || 0,
+          category: item.category || 'Mains',
+          available: item.available ?? true,
+          options: item.options || [],
+          tags: item.tags || [],
+          imageUrl: item.imageUrl,
+        };
+
+        await createMenuItem(venue.id, payload);
+      }
+
+      const refreshedVenue = await getVenueById(venue.id);
+      if (refreshedVenue) {
+        setVenue(refreshedVenue);
+      }
+
+      setParsedItems(null);
+      toast.success('Imported items saved to menu');
+    } catch (error) {
+      console.error('Import failed', error);
+      toast.error('Failed to import menu items');
+    } finally {
+      setIsImporting(false);
+    }
   }, [parsedItems, setVenue, venue]);
 
   return {
@@ -236,5 +264,6 @@ export const useVendorMenuManager = ({ venue, setVenue }: UseVendorMenuManagerAr
     generatingImages,
     generateImagesForImport,
     confirmImport,
+    isImporting,
   };
 };

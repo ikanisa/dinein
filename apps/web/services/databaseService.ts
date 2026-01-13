@@ -357,6 +357,7 @@ export const getMenuItemsForVendor = async (vendorId: string, includeUnavailable
 };
 
 export const createMenuItem = async (vendorId: string, item: Omit<MenuItem, 'id'>): Promise<MenuItem> => {
+  const imageUrl = item.imageUrl;
 
   const { data, error } = await supabase
     .from('menu_items')
