@@ -1,13 +1,13 @@
 /**
  * Tests for analytics service
  */
-
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { analytics, trackOrderPlaced, trackVenueViewed, trackSearch } from '../../services/analytics';
 
 describe('Analytics Service', () => {
   beforeEach(() => {
     // Mock gtag
-    (window as any).gtag = jest.fn();
+    (window as any).gtag = vi.fn();
     // Reset singleton state between tests
     (analytics as any).initialized = false;
     (analytics as any).measurementId = null;
@@ -32,7 +32,7 @@ describe('Analytics Service', () => {
     });
 
     it('should log to console when not initialized', () => {
-      const consoleSpy = jest.spyOn(console, 'log').mockImplementation();
+      const consoleSpy = vi.spyOn(console, 'log').mockImplementation();
       analytics.trackEvent('test_event');
       expect(consoleSpy).toHaveBeenCalled();
       consoleSpy.mockRestore();

@@ -22,21 +22,9 @@
     "test:e2e": "playwright test",
     "test:e2e:ui": "playwright test --ui",
     "test:e2e:report": "playwright show-report",
-    "test:all": "npm run test:coverage && npm run test:e2e",
-    "cap:sync": "cap sync",
-    "cap:open:android": "cap open android",
-    "android:build": "npm run build && cap sync && cd android && ./gradlew assembleRelease",
-    "android:build:debug": "npm run build && cap sync && cd android && ./gradlew assembleDebug",
-    "firebase:deploy": "firebase deploy --only hosting",
-    "deploy:all": "npm run build && npm run firebase:deploy"
+    "test:all": "npm run test:coverage && npm run test:e2e"
   },
   "dependencies": {
-    "@capacitor/android": "^8.0.1",
-    "@capacitor/cli": "^8.0.1",
-    "@capacitor/core": "^8.0.1",
-    "@capacitor/haptics": "^8.0.0",
-    "@capacitor/splash-screen": "^8.0.0",
-    "@capacitor/status-bar": "^8.0.0",
     "@google/genai": "*",
     "@remix-run/router": "1.16.1",
     "@sentry/react": "^7.120.4",

@@ -2,11 +2,11 @@
  * Basic test for haptics utility
  * Phase 1: Basic testing setup
  */
-
+import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { haptic, hapticButton, hapticSuccess, hapticError } from '../../utils/haptics';
 
 // Mock navigator.vibrate
-const mockVibrate = jest.fn();
+const mockVibrate = vi.fn();
 Object.defineProperty(navigator, 'vibrate', {
   writable: true,
   value: mockVibrate,
@@ -41,9 +41,9 @@ describe('Haptics Utilities', () => {
     const originalVibrate = navigator.vibrate;
     // @ts-expect-error -- navigator.vibrate can be undefined
     navigator.vibrate = undefined;
-    
+
     expect(() => hapticButton()).not.toThrow();
-    
+
     // Restore
     // @ts-expect-error -- restore to the original mocked function
     navigator.vibrate = originalVibrate;

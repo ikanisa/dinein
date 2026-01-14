@@ -1,15 +1,15 @@
 /**
  * Tests for Share API service
  */
-
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { isShareSupported, share, shareVenue, shareOrder } from '../../services/shareAPI';
 
 describe('Share API Service', () => {
   beforeEach(() => {
     // Mock navigator.share
-    (navigator as any).share = jest.fn().mockResolvedValue(undefined);
+    (navigator as any).share = vi.fn().mockResolvedValue(undefined);
     (navigator as any).clipboard = {
-      writeText: jest.fn().mockResolvedValue(undefined),
+      writeText: vi.fn().mockResolvedValue(undefined),
     };
   });
 
@@ -37,20 +37,20 @@ describe('Share API Service', () => {
 
     it('should fallback to clipboard when API is not supported', async () => {
       delete (navigator as any).share;
-      const alertSpy = jest.spyOn(window, 'alert').mockImplementation();
-      
+      const alertSpy = vi.spyOn(window, 'alert').mockImplementation();
+
       await share({ url: 'https://example.com' });
       expect((navigator as any).clipboard.writeText).toHaveBeenCalledWith('https://example.com');
       expect(alertSpy).toHaveBeenCalled();
-      
+
       alertSpy.mockRestore();
     });
 
     it('should handle user cancellation gracefully', async () => {
       const error = new Error('User cancelled');
       error.name = 'AbortError';
-      (navigator as any).share = jest.fn().mockRejectedValue(error);
-      
+      (navigator as any).share = vi.fn().mockRejectedValue(error);
+
       await expect(share({ title: 'Test' })).resolves.not.toThrow();
     });
   });

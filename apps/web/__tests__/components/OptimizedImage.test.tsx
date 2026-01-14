@@ -1,7 +1,7 @@
 /**
  * Tests for OptimizedImage component
  */
-
+import { describe, it, expect, vi } from 'vitest';
 import { render, screen } from '@testing-library/react';
 import { OptimizedImage } from '../../components/OptimizedImage';
 
@@ -31,12 +31,12 @@ describe('OptimizedImage', () => {
 
   it('uses lazy loading when priority is false', async () => {
     const originalObserver = global.IntersectionObserver;
-    global.IntersectionObserver = jest.fn((callback: IntersectionObserverCallback) => ({
+    global.IntersectionObserver = vi.fn((callback: IntersectionObserverCallback) => ({
       observe: (element: Element) => {
         callback([{ isIntersecting: true, target: element } as IntersectionObserverEntry], {} as IntersectionObserver);
       },
-      unobserve: jest.fn(),
-      disconnect: jest.fn(),
+      unobserve: vi.fn(),
+      disconnect: vi.fn(),
       root: null,
       rootMargin: '',
       thresholds: [],

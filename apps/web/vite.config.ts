@@ -38,26 +38,20 @@ export default defineConfig(({ mode }) => {
           start_url: '/',
           icons: [
             {
-              src: '/icons/icon-72.png',
-              sizes: '72x72',
+              src: '/icons/icon-57.png',
+              sizes: '57x57',
               type: 'image/png',
               purpose: 'any'
             },
             {
-              src: '/icons/icon-96.png',
-              sizes: '96x96',
+              src: '/icons/icon-76.png',
+              sizes: '76x76',
               type: 'image/png',
               purpose: 'any'
             },
             {
-              src: '/icons/icon-128.png',
-              sizes: '128x128',
-              type: 'image/png',
-              purpose: 'any'
-            },
-            {
-              src: '/icons/icon-144.png',
-              sizes: '144x144',
+              src: '/icons/icon-120.png',
+              sizes: '120x120',
               type: 'image/png',
               purpose: 'any'
             },
@@ -68,22 +62,34 @@ export default defineConfig(({ mode }) => {
               purpose: 'any'
             },
             {
+              src: '/icons/icon-167.png',
+              sizes: '167x167',
+              type: 'image/png',
+              purpose: 'any'
+            },
+            {
               src: '/icons/icon-192.png',
               sizes: '192x192',
               type: 'image/png',
               purpose: 'any'
             },
             {
-              src: '/icons/icon-384.png',
-              sizes: '384x384',
+              src: '/icons/icon-192-maskable.png',
+              sizes: '192x192',
               type: 'image/png',
-              purpose: 'any'
+              purpose: 'maskable'
             },
             {
               src: '/icons/icon-512.png',
               sizes: '512x512',
               type: 'image/png',
-              purpose: 'any maskable'
+              purpose: 'any'
+            },
+            {
+              src: '/icons/icon-512-maskable.png',
+              sizes: '512x512',
+              type: 'image/png',
+              purpose: 'maskable'
             }
           ],
           categories: ['food', 'lifestyle', 'shopping']
@@ -186,12 +192,58 @@ export default defineConfig(({ mode }) => {
       },
       rollupOptions: {
         output: {
-          manualChunks: {
-            'react-vendor': ['react', 'react-dom'],
-            'router-vendor': ['react-router-dom'],
-            'supabase-vendor': ['@supabase/supabase-js'],
-            'animation-vendor': ['framer-motion'],
-            'utils-vendor': ['clsx', 'tailwind-merge'],
+          manualChunks: (id: string) => {
+            // Vendor chunks
+            if (id.includes('node_modules')) {
+              if (id.includes('react-dom') || id.includes('/react/')) {
+                return 'react-vendor';
+              }
+              if (id.includes('react-router-dom') || id.includes('@remix-run')) {
+                return 'router-vendor';
+              }
+              if (id.includes('@supabase')) {
+                return 'supabase-vendor';
+              }
+              if (id.includes('framer-motion')) {
+                return 'animation-vendor';
+              }
+              if (id.includes('react-lazy-load-image-component') || id.includes('react-window')) {
+                return 'lazy-vendor';
+              }
+              if (id.includes('web-vitals') || id.includes('@sentry')) {
+                return 'monitoring-vendor';
+              }
+              // Other vendor code stays in default chunk
+              return undefined;
+            }
+
+            // Application chunks by feature area
+            if (id.includes('/pages/Client')) {
+              return 'client-pages';
+            }
+            if (id.includes('/pages/Vendor')) {
+              return 'vendor-pages';
+            }
+            if (id.includes('/pages/Admin')) {
+              return 'admin-pages';
+            }
+            if (id.includes('/services/')) {
+              return 'services';
+            }
+            if (id.includes('/components/vendor/')) {
+              return 'vendor-components';
+            }
+            if (id.includes('/components/')) {
+              return 'shared-components';
+            }
+            if (id.includes('/context/')) {
+              return 'context';
+            }
+            if (id.includes('/utils/')) {
+              return 'utils';
+            }
+
+            return undefined;
           },
           chunkFileNames: 'assets/js/[name]-[hash].js',
           entryFileNames: 'assets/js/[name]-[hash].js',

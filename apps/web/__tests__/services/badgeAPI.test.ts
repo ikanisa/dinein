@@ -1,14 +1,14 @@
 /**
  * Tests for Badge API service
  */
-
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { setBadge, clearBadge, isBadgeAPISupported } from '../../services/badgeAPI';
 
 describe('Badge API Service', () => {
   beforeEach(() => {
     // Mock navigator.setAppBadge and clearAppBadge
-    (navigator as any).setAppBadge = jest.fn().mockResolvedValue(undefined);
-    (navigator as any).clearAppBadge = jest.fn().mockResolvedValue(undefined);
+    (navigator as any).setAppBadge = vi.fn().mockResolvedValue(undefined);
+    (navigator as any).clearAppBadge = vi.fn().mockResolvedValue(undefined);
   });
 
   afterEach(() => {
@@ -39,12 +39,12 @@ describe('Badge API Service', () => {
     });
 
     it('should handle errors gracefully', async () => {
-      (navigator as any).setAppBadge = jest.fn().mockRejectedValue(new Error('Failed'));
-      const consoleSpy = jest.spyOn(console, 'error').mockImplementation();
-      
+      (navigator as any).setAppBadge = vi.fn().mockRejectedValue(new Error('Failed'));
+      const consoleSpy = vi.spyOn(console, 'error').mockImplementation();
+
       await setBadge(5);
       expect(consoleSpy).toHaveBeenCalled();
-      
+
       consoleSpy.mockRestore();
     });
   });
@@ -56,12 +56,12 @@ describe('Badge API Service', () => {
     });
 
     it('should handle errors gracefully', async () => {
-      (navigator as any).clearAppBadge = jest.fn().mockRejectedValue(new Error('Failed'));
-      const consoleSpy = jest.spyOn(console, 'error').mockImplementation();
-      
+      (navigator as any).clearAppBadge = vi.fn().mockRejectedValue(new Error('Failed'));
+      const consoleSpy = vi.spyOn(console, 'error').mockImplementation();
+
       await clearBadge();
       expect(consoleSpy).toHaveBeenCalled();
-      
+
       consoleSpy.mockRestore();
     });
   });

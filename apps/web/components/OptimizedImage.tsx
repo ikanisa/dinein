@@ -1,146 +1,138 @@
 /**
  * Optimized Image Component
+ * Enhanced with react-lazy-load-image-component for blur-up effect
  * Supports WebP, responsive images, lazy loading, and placeholder
  */
 
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState } from 'react';
+import { LazyLoadImage } from 'react-lazy-load-image-component';
+import 'react-lazy-load-image-component/src/effects/blur.css';
 
-export interface OptimizedImageProps extends React.ImgHTMLAttributes<HTMLImageElement> {
+export interface OptimizedImageProps {
   src: string;
   alt: string;
   aspectRatio?: string; // e.g., "4/3", "16/9"
-  placeholder?: string; // Base64 or URL for placeholder
+  placeholder?: string; // Base64 or URL for placeholder (LQIP)
   sizes?: string; // Responsive image sizes
   priority?: boolean; // Load immediately (skip lazy loading)
+  className?: string;
+  wrapperClassName?: string;
+  width?: number | string;
+  height?: number | string;
+  objectFit?: 'cover' | 'contain' | 'fill' | 'none' | 'scale-down';
   onLoad?: () => void;
   onError?: () => void;
 }
+
+/**
+ * Generate srcset for responsive images
+ */
+const generateSrcSet = (src: string): string | undefined => {
+  if (!src || src.startsWith('data:') || src.includes('?')) {
+    return undefined;
+  }
+
+  // For Supabase Storage URLs, append width transforms
+  if (src.includes('supabase.co/storage')) {
+    const widths = [320, 640, 960, 1280, 1920];
+    return widths
+      .map(w => `${src}?width=${w}&quality=80 ${w}w`)
+      .join(', ');
+  }
+
+  return undefined;
+};
+
+/**
+ * Generate responsive sizes attribute
+ */
+const generateSizes = (customSizes?: string): string => {
+  if (customSizes) return customSizes;
+  return '(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw';
+};
 
 export const OptimizedImage: React.FC<OptimizedImageProps> = React.memo(({
   src,
   alt,
   aspectRatio,
   placeholder,
-  sizes = '100vw',
+  sizes,
   priority = false,
   className = '',
+  wrapperClassName = '',
+  width,
+  height,
+  objectFit = 'cover',
   onLoad,
   onError,
-  ...props
 }) => {
-  const [isLoaded, setIsLoaded] = useState(false);
   const [hasError, setHasError] = useState(false);
-  const [shouldLoad, setShouldLoad] = useState(priority);
-  const imgRef = useRef<HTMLImageElement>(null);
-  const observerRef = useRef<IntersectionObserver | null>(null);
-
-  // Intersection Observer for lazy loading
-  useEffect(() => {
-    if (priority || shouldLoad) return;
-
-    const observer = new IntersectionObserver(
-      (entries) => {
-        entries.forEach((entry) => {
-          if (entry.isIntersecting) {
-            setShouldLoad(true);
-            observer.disconnect();
-          }
-        });
-      },
-      {
-        rootMargin: '50px', // Start loading 50px before image enters viewport
-      }
-    );
-
-    if (imgRef.current) {
-      observer.observe(imgRef.current);
-      observerRef.current = observer;
-    }
-
-    return () => {
-      if (observerRef.current) {
-        observerRef.current.disconnect();
-      }
-    };
-  }, [priority, shouldLoad]);
-
-  const handleLoad = () => {
-    setIsLoaded(true);
-    onLoad?.();
-  };
 
   const handleError = () => {
     setHasError(true);
     onError?.();
   };
 
-  // Generate WebP src if possible (browser supports WebP)
-  const getOptimizedSrc = () => {
-    if (!src) return '';
-    
-    // If already WebP or data URL, return as-is
-    if (src.startsWith('data:') || src.includes('.webp')) {
-      return src;
-    }
-
-    // For external URLs, try to use WebP if supported
-    // Note: In production, you'd want server-side WebP conversion
-    // For now, we'll use the original src
-    return src;
-  };
-
   const containerStyle: React.CSSProperties = {
     position: 'relative',
     overflow: 'hidden',
-    ...(aspectRatio && {
-      aspectRatio,
-    }),
-    ...(props.style || {}),
+    ...(aspectRatio && { aspectRatio }),
   };
 
-  return (
-    <div
-      ref={imgRef}
-      className={`relative ${className}`}
-      style={containerStyle}
-    >
-      {/* Placeholder (blur-up effect) */}
-      {placeholder && !isLoaded && (
-        <img
-          src={placeholder}
-          alt=""
-          aria-hidden="true"
-          className="absolute inset-0 w-full h-full object-cover blur-sm scale-110"
-          style={{ filter: 'blur(10px)', transform: 'scale(1.1)' }}
-        />
-      )}
+  const imageStyle: React.CSSProperties = {
+    objectFit,
+    width: '100%',
+    height: '100%',
+  };
 
-      {/* Skeleton while loading */}
-      {!isLoaded && !placeholder && (
-        <div className="absolute inset-0 bg-gray-200 dark:bg-white/10 animate-pulse" />
-      )}
-
-      {/* Actual image */}
-      {(shouldLoad || priority) && (
+  // For priority images, use native img with eager loading
+  if (priority) {
+    return (
+      <div className={`relative ${wrapperClassName}`} style={containerStyle}>
         <img
-          src={getOptimizedSrc()}
+          src={src}
           alt={alt}
-          className={`absolute inset-0 w-full h-full object-cover transition-opacity duration-300 ${
-            isLoaded ? 'opacity-100' : 'opacity-0'
-          }`}
-          loading={priority ? 'eager' : 'lazy'}
+          className={`w-full h-full ${className}`}
+          style={imageStyle}
+          loading="eager"
           decoding="async"
-          sizes={sizes}
-          onLoad={handleLoad}
+          fetchPriority="high"
+          sizes={generateSizes(sizes)}
+          srcSet={generateSrcSet(src)}
+          onLoad={onLoad}
           onError={handleError}
-          {...props}
+          width={width}
+          height={height}
         />
-      )}
+        {hasError && (
+          <div className="absolute inset-0 bg-gray-200 dark:bg-white/10 flex items-center justify-center">
+            <span className="text-gray-400 text-xs">Failed to load</span>
+          </div>
+        )}
+      </div>
+    );
+  }
 
-      {/* Error state */}
+  // For lazy images, use react-lazy-load-image-component with blur effect
+  return (
+    <div className={`relative ${wrapperClassName}`} style={containerStyle}>
+      <LazyLoadImage
+        src={src}
+        alt={alt}
+        effect="blur"
+        className={`w-full h-full ${className}`}
+        style={imageStyle}
+        placeholderSrc={placeholder}
+        threshold={100}
+        afterLoad={onLoad}
+        onError={handleError}
+        width={width}
+        height={height}
+        wrapperClassName="!w-full !h-full"
+      />
       {hasError && (
         <div className="absolute inset-0 bg-gray-200 dark:bg-white/10 flex items-center justify-center">
-          <span className="text-gray-400 text-xs">Failed to load image</span>
+          <span className="text-gray-400 text-xs">Failed to load</span>
         </div>
       )}
     </div>
@@ -149,3 +141,37 @@ export const OptimizedImage: React.FC<OptimizedImageProps> = React.memo(({
 
 OptimizedImage.displayName = 'OptimizedImage';
 
+/**
+ * Hero Image - Priority loaded, optimized for LCP
+ */
+export const HeroImage: React.FC<Omit<OptimizedImageProps, 'priority'>> = (props) => (
+  <OptimizedImage {...props} priority />
+);
+
+/**
+ * Thumbnail Image - Small, eager lazy loading with low threshold
+ */
+export const ThumbnailImage: React.FC<OptimizedImageProps> = (props) => (
+  <OptimizedImage
+    {...props}
+    sizes="(max-width: 640px) 50vw, 150px"
+  />
+);
+
+/**
+ * Avatar Image - Circular, small
+ */
+export const AvatarImage: React.FC<OptimizedImageProps & { size?: number }> = ({
+  size = 40,
+  className = '',
+  ...props
+}) => (
+  <OptimizedImage
+    {...props}
+    width={size}
+    height={size}
+    className={`rounded-full ${className}`}
+    wrapperClassName="rounded-full overflow-hidden"
+    aspectRatio="1/1"
+  />
+);

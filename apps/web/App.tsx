@@ -34,6 +34,7 @@ import { initQueueProcessor } from './services/offlineQueue';
 import { errorTracker } from './services/errorTracking';
 import { analytics } from './services/analytics';
 import { initWebVitals } from './services/webVitals';
+import { preloadCriticalRoutes } from './utils/routePreload';
 
 // Initialize offline queue processor
 initQueueProcessor();
@@ -44,6 +45,9 @@ if (import.meta.env.PROD) {
   analytics.init();
   initWebVitals();
 }
+
+// Preload critical routes after initial render (uses requestIdleCallback)
+preloadCriticalRoutes();
 
 // Configure React Query client
 const queryClient = new QueryClient({
