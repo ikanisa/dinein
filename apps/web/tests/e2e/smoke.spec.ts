@@ -1,12 +1,44 @@
 import { test, expect } from '@playwright/test';
 
-test('home loads and shows brand header', async ({ page }) => {
-  await page.goto('/#/');
-  await expect(page.getByRole('heading', { name: /SACCO\+/i })).toBeVisible();
-  await expect(page.locator('text=Protected by')).toBeVisible();
-});
+test.describe('Smoke Tests', () => {
+  test('home page loads without errors', async ({ page }) => {
+    const errors: string[] = [];
+    page.on('console', msg => {
+      if (msg.type() === 'error') {
+        errors.push(msg.text());
+      }
+    });
 
-test('explore route is reachable', async ({ page }) => {
-  await page.goto('/#/explore');
-  await expect(page).toHaveURL(/explore/);
+    await page.goto('/#/');
+    await page.waitForLoadState('networkidle');
+
+    // Page should load without critical errors
+    const criticalErrors = errors.filter(e =>
+      !e.includes('Failed to load resource') &&
+      !e.includes('404') &&
+      !e.includes('favicon')
+    );
+    expect(criticalErrors).toHaveLength(0);
+
+    // Should have a title
+    await expect(page).toHaveTitle(/DineIn/i);
+  });
+
+  test('explore route is reachable', async ({ page }) => {
+    await page.goto('/#/explore');
+    await page.waitForLoadState('networkidle');
+    await expect(page).toHaveURL(/explore/);
+  });
+
+  test('vendor login page is accessible', async ({ page }) => {
+    await page.goto('/#/vendor/login');
+    await page.waitForLoadState('networkidle');
+    await expect(page).toHaveURL(/vendor.*login/);
+  });
+
+  test('admin login page is accessible', async ({ page }) => {
+    await page.goto('/#/admin/login');
+    await page.waitForLoadState('networkidle');
+    await expect(page).toHaveURL(/admin.*login/);
+  });
 });

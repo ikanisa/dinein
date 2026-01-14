@@ -37,7 +37,7 @@ describe('Share API Service', () => {
 
     it('should fallback to clipboard when API is not supported', async () => {
       delete (navigator as any).share;
-      const alertSpy = vi.spyOn(window, 'alert').mockImplementation();
+      const alertSpy = vi.spyOn(window, 'alert').mockImplementation(() => { });
 
       await share({ url: 'https://example.com' });
       expect((navigator as any).clipboard.writeText).toHaveBeenCalledWith('https://example.com');

@@ -18,11 +18,6 @@ const createTestQueryClient = () =>
                 retry: false,
             },
         },
-        logger: {
-            log: console.log,
-            warn: console.warn,
-            error: () => { }, // Suppress error logging in tests
-        },
     });
 
 interface AllTheProvidersProps {

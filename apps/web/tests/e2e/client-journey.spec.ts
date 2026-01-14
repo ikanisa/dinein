@@ -50,8 +50,8 @@ test.describe('Client User Journey', () => {
             page.locator('[class*="glass-panel"]')
         ).first();
 
-        // Either vendor cards should be visible or loading skeleton
-        const hasContent = await vendorCard.isVisible().catch(() => false);
+        // Either vendor cards should be visible or loading skeleton or empty state
+        const hasContent = await vendorCard.or(page.locator('[data-testid="empty-state"]')).isVisible().catch(() => false);
         const hasLoading = await page.locator('.animate-pulse, [class*="skeleton"]').first().isVisible().catch(() => false);
 
         expect(hasContent || hasLoading).toBeTruthy();

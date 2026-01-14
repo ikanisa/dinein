@@ -94,7 +94,7 @@ describe('ErrorBoundary', () => {
 
     it('resets error state when Try Again is clicked', async () => {
         const user = userEvent.setup();
-        let shouldThrow = true;
+        const shouldThrow = true;
 
         const ToggleError = () => {
             if (shouldThrow) {

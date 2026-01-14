@@ -32,7 +32,7 @@ describe('Analytics Service', () => {
     });
 
     it('should log to console when not initialized', () => {
-      const consoleSpy = vi.spyOn(console, 'log').mockImplementation();
+      const consoleSpy = vi.spyOn(console, 'log').mockImplementation(() => { });
       analytics.trackEvent('test_event');
       expect(consoleSpy).toHaveBeenCalled();
       consoleSpy.mockRestore();

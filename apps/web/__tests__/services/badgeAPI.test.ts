@@ -40,7 +40,7 @@ describe('Badge API Service', () => {
 
     it('should handle errors gracefully', async () => {
       (navigator as any).setAppBadge = vi.fn().mockRejectedValue(new Error('Failed'));
-      const consoleSpy = vi.spyOn(console, 'error').mockImplementation();
+      const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => { });
 
       await setBadge(5);
       expect(consoleSpy).toHaveBeenCalled();
@@ -57,7 +57,7 @@ describe('Badge API Service', () => {
 
     it('should handle errors gracefully', async () => {
       (navigator as any).clearAppBadge = vi.fn().mockRejectedValue(new Error('Failed'));
-      const consoleSpy = vi.spyOn(console, 'error').mockImplementation();
+      const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => { });
 
       await clearBadge();
       expect(consoleSpy).toHaveBeenCalled();

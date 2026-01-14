@@ -54,12 +54,15 @@ vi.mock('@capacitor/status-bar', () => ({
     },
 }));
 
-// Mock haptics utility
+// Mock haptics utility - include all exports
 vi.mock('@/utils/haptics', () => ({
+    haptic: vi.fn(),
     hapticButton: vi.fn(),
     hapticSuccess: vi.fn(),
     hapticError: vi.fn(),
+    hapticWarning: vi.fn(),
     hapticSelection: vi.fn(),
+    hapticImportant: vi.fn(),
 }));
 
 // Mock IntersectionObserver

@@ -135,7 +135,7 @@ export const handlers = [
 
     // POST order
     http.post(`${SUPABASE_URL}/rest/v1/orders`, async ({ request }) => {
-        const body = await request.json();
+        const body = await request.json() as Record<string, unknown>;
         const newOrder = {
             id: `order-${Date.now()}`,
             ...body,
@@ -147,7 +147,7 @@ export const handlers = [
 
     // PATCH order (update status)
     http.patch(`${SUPABASE_URL}/rest/v1/orders`, async ({ request }) => {
-        const body = await request.json();
+        const body = await request.json() as Record<string, unknown>;
         return HttpResponse.json({ ...mockOrders[0], ...body });
     }),
 ];
