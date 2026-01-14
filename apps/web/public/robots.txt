@@ -1,0 +1,14 @@
+# https://www.robotstxt.org/robotstxt.html
+User-agent: *
+Allow: /
+
+# Sitemaps
+Sitemap: https://dinein.mt/sitemap.xml
+
+# Crawl-delay (be nice to servers)
+Crawl-delay: 1
+
+# Disallow admin and vendor routes from indexing
+Disallow: /admin
+Disallow: /vendor
+Disallow: /dev

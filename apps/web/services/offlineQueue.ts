@@ -148,9 +148,9 @@ export function initQueueProcessor(): void {
   if (typeof window === 'undefined') return;
 
   const handleOnline = async () => {
-    console.log('Online - processing queued requests...');
+    if (import.meta.env.DEV) console.log('Online - processing queued requests...');
     const results = await processQueue();
-    console.log(`Queue processed: ${results.success} succeeded, ${results.failed} failed`);
+    if (import.meta.env.DEV) console.log(`Queue processed: ${results.success} succeeded, ${results.failed} failed`);
   };
 
   window.addEventListener('online', handleOnline);
