@@ -12,7 +12,7 @@ BLUE='\033[0;34m'
 NC='\033[0m' # No Color
 
 # Configuration
-PROJECT_NAME="dinein-malta"
+PROJECT_NAME="dinein"
 BUILD_DIR="dist"
 WORKING_DIR="apps/web"
 
