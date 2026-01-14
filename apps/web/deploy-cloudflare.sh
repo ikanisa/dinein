@@ -28,21 +28,15 @@ fi
 
 cd "$WORKING_DIR"
 
-# Check if wrangler is installed
-if ! command -v wrangler &> /dev/null; then
-    echo -e "${YELLOW}⚠️  Wrangler CLI not found. Installing...${NC}"
-    npm install -g wrangler
-fi
-
 # Check if logged in to Cloudflare
 echo -e "${BLUE}📋 Checking Cloudflare authentication...${NC}"
-if ! wrangler whoami &> /dev/null; then
+if ! npx wrangler whoami &> /dev/null; then
     echo -e "${YELLOW}⚠️  Not logged in to Cloudflare. Please login:${NC}"
-    wrangler login
+    npx wrangler login
 fi
 
 # Display current user
-echo -e "${GREEN}✅ Logged in as:$(wrangler whoami | grep -oP '(?<=You are logged in as ).*')${NC}\n"
+echo -e "${GREEN}✅ Logged in as:$(npx wrangler whoami | grep -oP '(?<=You are logged in as ).*')${NC}\n"
 
 # Clean previous build
 echo -e "${BLUE}🧹 Cleaning previous build...${NC}"
@@ -84,7 +78,7 @@ echo -e "${YELLOW}Project: ${PROJECT_NAME}${NC}"
 echo -e "${YELLOW}Directory: ${BUILD_DIR}${NC}\n"
 
 # Deploy with production flag
-DEPLOY_OUTPUT=$(wrangler pages deploy "$BUILD_DIR" --project-name="$PROJECT_NAME" 2>&1)
+DEPLOY_OUTPUT=$(npx wrangler pages deploy "$BUILD_DIR" --project-name="$PROJECT_NAME" 2>&1)
 DEPLOY_EXIT_CODE=$?
 
 if [ $DEPLOY_EXIT_CODE -eq 0 ]; then

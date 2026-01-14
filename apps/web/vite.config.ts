@@ -195,7 +195,7 @@ export default defineConfig(({ mode }) => {
           manualChunks: (id: string) => {
             // Vendor chunks
             if (id.includes('node_modules')) {
-              if (id.includes('react-dom') || id.includes('/react/')) {
+              if (id.includes('react-dom') || id.includes('/react/') || id.includes('react-lazy-load-image-component') || id.includes('react-window')) {
                 return 'react-vendor';
               }
               if (id.includes('react-router-dom') || id.includes('@remix-run')) {
@@ -207,9 +207,6 @@ export default defineConfig(({ mode }) => {
               if (id.includes('framer-motion')) {
                 return 'animation-vendor';
               }
-              if (id.includes('react-lazy-load-image-component') || id.includes('react-window')) {
-                return 'lazy-vendor';
-              }
               if (id.includes('web-vitals') || id.includes('@sentry')) {
                 return 'monitoring-vendor';
               }
@@ -217,32 +214,8 @@ export default defineConfig(({ mode }) => {
               return undefined;
             }
 
-            // Application chunks by feature area
-            if (id.includes('/pages/Client')) {
-              return 'client-pages';
-            }
-            if (id.includes('/pages/Vendor')) {
-              return 'vendor-pages';
-            }
-            if (id.includes('/pages/Admin')) {
-              return 'admin-pages';
-            }
-            if (id.includes('/services/')) {
-              return 'services';
-            }
-            if (id.includes('/components/vendor/')) {
-              return 'vendor-components';
-            }
-            if (id.includes('/components/')) {
-              return 'shared-components';
-            }
-            if (id.includes('/context/')) {
-              return 'context';
-            }
-            if (id.includes('/utils/')) {
-              return 'utils';
-            }
-
+            // Application chunks - Let Vite handle this automatically to avoid circular dependencies
+            // The previous manual configuration caused circular chunks between contexts, services, and pages
             return undefined;
           },
           chunkFileNames: 'assets/js/[name]-[hash].js',

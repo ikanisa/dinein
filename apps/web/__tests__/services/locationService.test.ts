@@ -39,8 +39,13 @@ const createGeolocationMock = () => {
                         altitudeAccuracy: null,
                         heading: null,
                         speed: null,
+                        toJSON: () => ({ latitude: -1.9403, longitude: 29.8739, accuracy: 10, altitude: null, altitudeAccuracy: null, heading: null, speed: null })
                     },
                     timestamp: Date.now(),
+                    toJSON: () => ({
+                        coords: { latitude: -1.9403, longitude: 29.8739, accuracy: 10, altitude: null, altitudeAccuracy: null, heading: null, speed: null },
+                        timestamp: Date.now()
+                    })
                 };
                 setTimeout(() => success(position), 0);
             }
@@ -66,8 +71,13 @@ const createGeolocationMock = () => {
                     altitudeAccuracy: null,
                     heading: null,
                     speed: null,
+                    toJSON: () => ({ latitude: position.latitude ?? 0, longitude: position.longitude ?? 0, accuracy: position.accuracy ?? 10, altitude: null, altitudeAccuracy: null, heading: null, speed: null })
                 },
                 timestamp: Date.now(),
+                toJSON: () => ({
+                    coords: { latitude: position.latitude ?? 0, longitude: position.longitude ?? 0, accuracy: position.accuracy ?? 10, altitude: null, altitudeAccuracy: null, heading: null, speed: null },
+                    timestamp: Date.now()
+                })
             };
             watchCallbacks.forEach(cb => cb.success(fullPosition));
         },
@@ -136,8 +146,13 @@ describe('locationService', () => {
                             altitudeAccuracy: null,
                             heading: null,
                             speed: null,
+                            toJSON: () => ({ latitude: -1.9403, longitude: 29.8739, accuracy: 10, altitude: null, altitudeAccuracy: null, heading: null, speed: null })
                         },
                         timestamp: Date.now(),
+                        toJSON: () => ({
+                            coords: { latitude: -1.9403, longitude: 29.8739, accuracy: 10, altitude: null, altitudeAccuracy: null, heading: null, speed: null },
+                            timestamp: Date.now()
+                        })
                     };
                     setTimeout(() => success(position), 0);
                 }
@@ -215,14 +230,6 @@ describe('locationService', () => {
     });
 });
 
-describe('Location type', () => {
-    it('has correct structure', async () => {
-        const { Location } = await import('../../services/locationService');
-
-        // Type checking - just verify import works
-        expect(true).toBe(true);
-    });
-});
 
 describe('LocationStatus type', () => {
     it('includes all expected values', async () => {
