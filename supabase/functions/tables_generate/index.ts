@@ -1,13 +1,22 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { z } from "https://deno.land/x/zod@v3.22.4/mod.ts";
+import {
+  handleCors,
+  jsonResponse,
+  errorResponse,
+  createAdminClient,
+  requireAuth,
+  checkRateLimit,
+  requireVendorOrAdmin,
+  createLogger,
+  getOrCreateRequestId,
+  createAuditLogger,
+  AuditAction,
+  EntityType,
+  RateLimitConfig,
+} from "../_lib/mod.ts";
 
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
-  "Access-Control-Allow-Methods": "POST, OPTIONS",
-};
-
+// --- Input Validation Schema ---
 const tablesGenerateSchema = z.object({
   vendor_id: z.string().uuid(),
   count: z.number().int().positive().optional(),
@@ -19,113 +28,68 @@ const tablesGenerateSchema = z.object({
 
 type TablesGenerateInput = z.infer<typeof tablesGenerateSchema>;
 
-const RATE_LIMIT = {
+const RATE_LIMIT: RateLimitConfig = {
   maxRequests: 20,
   window: "1 hour",
   endpoint: "tables_generate",
 };
 
 Deno.serve(async (req) => {
-  if (req.method === "OPTIONS") {
-    return new Response("ok", { headers: corsHeaders });
-  }
+  const startTime = Date.now();
+  const requestId = getOrCreateRequestId(req);
+  const logger = createLogger({ requestId, action: "tables_generate" });
+
+  // Handle CORS preflight
+  const corsResponse = handleCors(req);
+  if (corsResponse) return corsResponse;
 
   if (req.method !== "POST") {
-    return new Response(
-      JSON.stringify({ error: "Method not allowed" }),
-      { status: 405, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-    );
+    return errorResponse("Method not allowed", 405);
   }
 
   try {
-    const supabaseAdmin = createClient(
-      Deno.env.get("SUPABASE_URL") ?? "",
-      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? ""
-    );
+    logger.requestStart(req.method, "/tables_generate");
 
-    const authHeader = req.headers.get("Authorization");
-    if (!authHeader) {
-      return new Response(
-        JSON.stringify({ error: "Missing authorization header" }),
-        { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
-    }
+    const supabaseAdmin = createAdminClient();
 
-    const supabaseUser = createClient(
-      Deno.env.get("SUPABASE_URL") ?? "",
-      Deno.env.get("SUPABASE_ANON_KEY") ?? "",
-      { global: { headers: { Authorization: authHeader } } }
-    );
+    // Authenticate user
+    const authResult = await requireAuth(req, logger);
+    if (authResult instanceof Response) return authResult;
+    const { user, supabaseUser } = authResult;
 
-    // Get authenticated user
-    const { data: { user }, error: userError } = await supabaseUser.auth.getUser();
-    if (userError || !user) {
-      return new Response(
-        JSON.stringify({ error: "Unauthorized" }),
-        { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
-    }
-
+    // Parse + validate input
     const body = await req.json();
     const parsed = tablesGenerateSchema.safeParse(body);
     if (!parsed.success) {
-      return new Response(
-        JSON.stringify({ error: "Invalid request data", details: parsed.error.issues }),
-        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
+      logger.warn("Validation failed", { errors: parsed.error.issues });
+      return errorResponse("Invalid request data", 400, parsed.error.issues);
     }
 
     const input: TablesGenerateInput = parsed.data;
+    logger.info("Processing tables generate", { vendorId: input.vendor_id, count: input.count });
 
-    const { data: allowed, error: rateLimitError } = await supabaseAdmin.rpc("check_rate_limit", {
-      p_user_id: user.id,
-      p_endpoint: RATE_LIMIT.endpoint,
-      p_limit: RATE_LIMIT.maxRequests,
-      p_window: RATE_LIMIT.window,
-    });
+    // Rate limiting
+    const rateLimitResult = await checkRateLimit(supabaseAdmin, user.id, RATE_LIMIT, logger);
+    if (rateLimitResult instanceof Response) return rateLimitResult;
 
-    if (rateLimitError) {
-      console.error("Rate limit check failed:", rateLimitError);
-      return new Response(
-        JSON.stringify({ error: "Rate limit check failed" }),
-        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
-    }
+    // Create audit logger
+    const audit = createAuditLogger(supabaseAdmin, user.id, requestId, logger);
 
-    if (!allowed) {
-      return new Response(
-        JSON.stringify({ error: "Too many requests" }),
-        { status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
-    }
+    // ========================================================================
+    // STEP 1: Verify user is vendor member or admin
+    // ========================================================================
+    const rbacResult = await requireVendorOrAdmin(
+      supabaseAdmin,
+      supabaseUser,
+      input.vendor_id,
+      user.id,
+      logger
+    );
+    if (rbacResult instanceof Response) return rbacResult;
 
-    // Verify user is vendor member (using RLS check via user client)
-    const { data: vendorCheck } = await supabaseUser
-      .from("vendor_users")
-      .select("role")
-      .eq("vendor_id", input.vendor_id)
-      .eq("auth_user_id", user.id)
-      .eq("is_active", true)
-      .single();
-
-    if (!vendorCheck) {
-      // Also check if admin
-      const { data: adminCheck } = await supabaseAdmin
-        .from("admin_users")
-        .select("id")
-        .eq("auth_user_id", user.id)
-        .eq("is_active", true)
-        .single();
-
-      if (!adminCheck) {
-        return new Response(
-          JSON.stringify({ error: "Forbidden - not a vendor member or admin" }),
-          { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-        );
-      }
-    }
-
-    // Verify vendor exists
+    // ========================================================================
+    // STEP 2: Verify vendor exists
+    // ========================================================================
     const { data: vendor } = await supabaseAdmin
       .from("vendors")
       .select("id")
@@ -133,19 +97,13 @@ Deno.serve(async (req) => {
       .single();
 
     if (!vendor) {
-      return new Response(
-        JSON.stringify({ error: "Vendor not found" }),
-        { status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
+      logger.warn("Vendor not found", { vendorId: input.vendor_id });
+      return errorResponse("Vendor not found", 404);
     }
 
-    // Generate secure public_code
-    const generatePublicCode = (): string => {
-      const random = Math.random().toString(36).substring(2, 10).toUpperCase();
-      return `TBL-${random}`;
-    };
-
-    // Determine table numbers to create
+    // ========================================================================
+    // STEP 3: Determine table numbers to create
+    // ========================================================================
     let tableNumbers: number[] = [];
     if (input.table_numbers && input.table_numbers.length > 0) {
       tableNumbers = input.table_numbers;
@@ -153,21 +111,16 @@ Deno.serve(async (req) => {
       const start = input.start_number || 1;
       tableNumbers = Array.from({ length: input.count }, (_, i) => start + i);
     } else {
-      return new Response(
-        JSON.stringify({ error: "Must provide either count or table_numbers array" }),
-        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
+      return errorResponse("Must provide either count or table_numbers array", 400);
     }
 
-    // Validate table numbers are positive
     if (tableNumbers.some((n) => n <= 0)) {
-      return new Response(
-        JSON.stringify({ error: "Table numbers must be positive integers" }),
-        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
+      return errorResponse("Table numbers must be positive integers", 400);
     }
 
-    // Check for existing table numbers to avoid conflicts
+    // ========================================================================
+    // STEP 4: Check for existing table numbers
+    // ========================================================================
     const { data: existingTables } = await supabaseAdmin
       .from("tables")
       .select("table_number")
@@ -176,66 +129,60 @@ Deno.serve(async (req) => {
 
     if (existingTables && existingTables.length > 0) {
       const existingNumbers = existingTables.map((t) => t.table_number);
-      return new Response(
-        JSON.stringify({ 
-          error: "Table numbers already exist", 
-          existing: existingNumbers 
-        }),
-        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
+      logger.warn("Table numbers already exist", { existingNumbers });
+      return errorResponse("Table numbers already exist", 400, { existing: existingNumbers });
     }
 
-    // Generate table records
-    const tablesToInsert = tableNumbers.map((tableNumber) => {
-      let publicCode = generatePublicCode();
-      // Ensure uniqueness (simple retry - in production might want more robust)
-      const maxAttempts = 5;
-      for (let i = 0; i < maxAttempts; i++) {
-        publicCode = generatePublicCode();
-        // Check if code exists (could optimize with batch check)
-        // For now, rely on unique constraint
-        break;
-      }
+    // ========================================================================
+    // STEP 5: Generate secure public codes and insert tables
+    // ========================================================================
+    const generatePublicCode = (): string => {
+      const random = Math.random().toString(36).substring(2, 10).toUpperCase();
+      return `TBL-${random}`;
+    };
 
-      return {
-        vendor_id: input.vendor_id,
-        table_number: tableNumber,
-        label: `Table ${tableNumber}`,
-        public_code: publicCode,
-        is_active: true,
-      };
-    });
+    const tablesToInsert = tableNumbers.map((tableNumber) => ({
+      vendor_id: input.vendor_id,
+      table_number: tableNumber,
+      label: `Table ${tableNumber}`,
+      public_code: generatePublicCode(),
+      is_active: true,
+    }));
 
-    // Insert tables
     const { data: createdTables, error: insertError } = await supabaseAdmin
       .from("tables")
       .insert(tablesToInsert)
       .select();
 
     if (insertError || !createdTables) {
-      console.error("Failed to create tables:", insertError);
-      return new Response(
-        JSON.stringify({ error: "Failed to create tables", details: insertError?.message }),
-        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
+      logger.error("Failed to create tables", { error: insertError?.message });
+      return errorResponse("Failed to create tables", 500, insertError?.message);
     }
 
-    return new Response(
-      JSON.stringify({
-        success: true,
-        tables: createdTables,
-        count: createdTables.length,
-      }),
-      {
-        status: 201,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      }
-    );
+    // ========================================================================
+    // STEP 6: Write audit log
+    // ========================================================================
+    await audit.log(AuditAction.TABLES_GENERATE, EntityType.TABLE, null, {
+      vendorId: input.vendor_id,
+      tableNumbers,
+      count: createdTables.length,
+    });
+
+    // ========================================================================
+    // STEP 7: Return created tables
+    // ========================================================================
+    const durationMs = Date.now() - startTime;
+    logger.requestEnd(201, durationMs);
+
+    return jsonResponse({
+      success: true,
+      requestId,
+      tables: createdTables,
+      count: createdTables.length,
+    }, 201);
   } catch (error) {
-    console.error("Tables generate error:", error);
-    return new Response(
-      JSON.stringify({ error: "Internal server error", details: String(error) }),
-      { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-    );
+    const durationMs = Date.now() - startTime;
+    logger.error("Tables generate error", { error: String(error), durationMs });
+    return errorResponse("Internal server error", 500, String(error));
   }
 });

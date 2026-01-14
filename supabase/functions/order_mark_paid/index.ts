@@ -1,99 +1,78 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { z } from "https://deno.land/x/zod@v3.22.4/mod.ts";
+import {
+  handleCors,
+  jsonResponse,
+  errorResponse,
+  createAdminClient,
+  requireAuth,
+  checkRateLimit,
+  requireVendorOrAdmin,
+  createLogger,
+  getOrCreateRequestId,
+  createAuditLogger,
+  AuditAction,
+  EntityType,
+  RateLimitConfig,
+} from "../_lib/mod.ts";
 
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
-  "Access-Control-Allow-Methods": "POST, OPTIONS",
-};
-
+// --- Input Validation Schema ---
 const orderMarkPaidSchema = z.object({
   order_id: z.string().uuid(),
 });
 
 type OrderMarkPaidInput = z.infer<typeof orderMarkPaidSchema>;
 
-const RATE_LIMIT = {
+const RATE_LIMIT: RateLimitConfig = {
   maxRequests: 60,
   window: "1 hour",
   endpoint: "order_mark_paid",
 };
 
 Deno.serve(async (req) => {
-  if (req.method === "OPTIONS") {
-    return new Response("ok", { headers: corsHeaders });
-  }
+  const startTime = Date.now();
+  const requestId = getOrCreateRequestId(req);
+  const logger = createLogger({ requestId, action: "order_mark_paid" });
+
+  // Handle CORS preflight
+  const corsResponse = handleCors(req);
+  if (corsResponse) return corsResponse;
 
   if (req.method !== "POST") {
-    return new Response(
-      JSON.stringify({ error: "Method not allowed" }),
-      { status: 405, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-    );
+    return errorResponse("Method not allowed", 405);
   }
 
   try {
-    const supabaseAdmin = createClient(
-      Deno.env.get("SUPABASE_URL") ?? "",
-      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? ""
-    );
+    logger.requestStart(req.method, "/order_mark_paid");
 
-    const authHeader = req.headers.get("Authorization");
-    if (!authHeader) {
-      return new Response(
-        JSON.stringify({ error: "Missing authorization header" }),
-        { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
-    }
+    const supabaseAdmin = createAdminClient();
 
-    const supabaseUser = createClient(
-      Deno.env.get("SUPABASE_URL") ?? "",
-      Deno.env.get("SUPABASE_ANON_KEY") ?? "",
-      { global: { headers: { Authorization: authHeader } } }
-    );
+    // Authenticate user
+    const authResult = await requireAuth(req, logger);
+    if (authResult instanceof Response) return authResult;
+    const { user, supabaseUser } = authResult;
 
-    const { data: { user }, error: userError } = await supabaseUser.auth.getUser();
-    if (userError || !user) {
-      return new Response(
-        JSON.stringify({ error: "Unauthorized" }),
-        { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
-    }
-
+    // Parse + validate input
     const body = await req.json();
     const parsed = orderMarkPaidSchema.safeParse(body);
     if (!parsed.success) {
-      return new Response(
-        JSON.stringify({ error: "Invalid request data", details: parsed.error.issues }),
-        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
+      logger.warn("Validation failed", { errors: parsed.error.issues });
+      return errorResponse("Invalid request data", 400, parsed.error.issues);
     }
 
     const input: OrderMarkPaidInput = parsed.data;
+    logger.info("Processing mark order paid", { orderId: input.order_id });
 
-    const { data: allowed, error: rateLimitError } = await supabaseAdmin.rpc("check_rate_limit", {
-      p_user_id: user.id,
-      p_endpoint: RATE_LIMIT.endpoint,
-      p_limit: RATE_LIMIT.maxRequests,
-      p_window: RATE_LIMIT.window,
-    });
+    // Rate limiting
+    const rateLimitResult = await checkRateLimit(supabaseAdmin, user.id, RATE_LIMIT, logger);
+    if (rateLimitResult instanceof Response) return rateLimitResult;
 
-    if (rateLimitError) {
-      console.error("Rate limit check failed:", rateLimitError);
-      return new Response(
-        JSON.stringify({ error: "Rate limit check failed" }),
-        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
-    }
+    // Create audit logger
+    const audit = createAuditLogger(supabaseAdmin, user.id, requestId, logger);
 
-    if (!allowed) {
-      return new Response(
-        JSON.stringify({ error: "Too many requests" }),
-        { status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
-    }
-
-    // Fetch order to verify vendor membership and current status
+    // ========================================================================
+    // STEP 1: Fetch order to verify vendor membership and current status
+    // ========================================================================
     const { data: order, error: orderError } = await supabaseAdmin
       .from("orders")
       .select("id, vendor_id, payment_status")
@@ -101,50 +80,39 @@ Deno.serve(async (req) => {
       .single();
 
     if (orderError || !order) {
-      return new Response(
-        JSON.stringify({ error: "Order not found" }),
-        { status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
+      logger.warn("Order not found", { orderId: input.order_id });
+      return errorResponse("Order not found", 404);
     }
 
-    // Verify user is vendor member or admin
-    const { data: vendorMember } = await supabaseUser
-      .from("vendor_users")
-      .select("id")
-      .eq("vendor_id", order.vendor_id)
-      .eq("auth_user_id", user.id)
-      .eq("is_active", true)
-      .single();
+    // ========================================================================
+    // STEP 2: Verify user is vendor member or admin
+    // ========================================================================
+    const rbacResult = await requireVendorOrAdmin(
+      supabaseAdmin,
+      supabaseUser,
+      order.vendor_id,
+      user.id,
+      logger
+    );
+    if (rbacResult instanceof Response) return rbacResult;
 
-    if (!vendorMember) {
-      // Check if admin
-      const { data: adminCheck } = await supabaseAdmin
-        .from("admin_users")
-        .select("id")
-        .eq("auth_user_id", user.id)
-        .eq("is_active", true)
-        .single();
-
-      if (!adminCheck) {
-        return new Response(
-          JSON.stringify({ error: "Forbidden - not a vendor member or admin" }),
-          { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-        );
-      }
-    }
-
-    // Check if already paid
+    // ========================================================================
+    // STEP 3: Check idempotency - if already paid, return success
+    // ========================================================================
     if (order.payment_status === "paid") {
-      return new Response(
-        JSON.stringify({ 
-          error: "Order is already marked as paid",
-          order_id: input.order_id
-        }),
-        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
+      logger.info("Order already paid (idempotent)", { orderId: input.order_id });
+      return jsonResponse({
+        success: true,
+        requestId,
+        order_id: input.order_id,
+        message: "Order is already marked as paid",
+        idempotent: true,
+      });
     }
 
-    // Update payment status
+    // ========================================================================
+    // STEP 4: Update payment status
+    // ========================================================================
     const { data: updatedOrder, error: updateError } = await supabaseAdmin
       .from("orders")
       .update({ payment_status: "paid" })
@@ -153,28 +121,33 @@ Deno.serve(async (req) => {
       .single();
 
     if (updateError || !updatedOrder) {
-      console.error("Failed to mark order as paid:", updateError);
-      return new Response(
-        JSON.stringify({ error: "Failed to update payment status", details: updateError?.message }),
-        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
+      logger.error("Failed to mark order as paid", { error: updateError?.message });
+      return errorResponse("Failed to update payment status", 500, updateError?.message);
     }
 
-    return new Response(
-      JSON.stringify({
-        success: true,
-        order: updatedOrder,
-      }),
-      {
-        status: 200,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      }
-    );
+    // ========================================================================
+    // STEP 5: Write audit log
+    // ========================================================================
+    await audit.log(AuditAction.ORDER_MARK_PAID, EntityType.ORDER, order.id, {
+      vendorId: order.vendor_id,
+      previousStatus: order.payment_status,
+      newStatus: "paid",
+    });
+
+    // ========================================================================
+    // STEP 6: Return updated order
+    // ========================================================================
+    const durationMs = Date.now() - startTime;
+    logger.requestEnd(200, durationMs);
+
+    return jsonResponse({
+      success: true,
+      requestId,
+      order: updatedOrder,
+    });
   } catch (error) {
-    console.error("Order mark paid error:", error);
-    return new Response(
-      JSON.stringify({ error: "Internal server error", details: String(error) }),
-      { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-    );
+    const durationMs = Date.now() - startTime;
+    logger.error("Order mark paid error", { error: String(error), durationMs });
+    return errorResponse("Internal server error", 500, String(error));
   }
 });

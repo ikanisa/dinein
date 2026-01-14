@@ -1,13 +1,21 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { z } from "https://deno.land/x/zod@v3.22.4/mod.ts";
+import {
+  handleCors,
+  jsonResponse,
+  errorResponse,
+  createAdminClient,
+  requireAuth,
+  checkRateLimit,
+  createLogger,
+  getOrCreateRequestId,
+  createAuditLogger,
+  AuditAction,
+  EntityType,
+  RateLimitConfig,
+} from "../_lib/mod.ts";
 
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
-  "Access-Control-Allow-Methods": "POST, OPTIONS",
-};
-
+// --- Input Validation Schema ---
 const orderItemSchema = z.object({
   menu_item_id: z.string().uuid(),
   qty: z.number().int().positive(),
@@ -23,90 +31,53 @@ const createOrderSchema = z.object({
 
 type CreateOrderInput = z.infer<typeof createOrderSchema>;
 
-const RATE_LIMIT = {
+const RATE_LIMIT: RateLimitConfig = {
   maxRequests: 20,
   window: "1 hour",
   endpoint: "order_create",
 };
 
 Deno.serve(async (req) => {
+  const startTime = Date.now();
+  const requestId = getOrCreateRequestId(req);
+  const logger = createLogger({ requestId, action: "order_create" });
+
   // Handle CORS preflight
-  if (req.method === "OPTIONS") {
-    return new Response("ok", { headers: corsHeaders });
-  }
+  const corsResponse = handleCors(req);
+  if (corsResponse) return corsResponse;
 
   if (req.method !== "POST") {
-    return new Response(
-      JSON.stringify({ error: "Method not allowed" }),
-      { status: 405, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-    );
+    return errorResponse("Method not allowed", 405);
   }
 
   try {
-    // Initialize service role client (bypasses RLS)
-    const supabaseAdmin = createClient(
-      Deno.env.get("SUPABASE_URL") ?? "",
-      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? ""
-    );
+    logger.requestStart(req.method, "/order_create");
 
-    // Initialize user client for auth verification
-    const authHeader = req.headers.get("Authorization");
-    if (!authHeader) {
-      return new Response(
-        JSON.stringify({ error: "Missing authorization header" }),
-        { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
-    }
+    // Initialize admin client
+    const supabaseAdmin = createAdminClient();
 
-    const supabaseUser = createClient(
-      Deno.env.get("SUPABASE_URL") ?? "",
-      Deno.env.get("SUPABASE_ANON_KEY") ?? "",
-      { global: { headers: { Authorization: authHeader } } }
-    );
-
-    // Get authenticated user
-    const { data: { user }, error: userError } = await supabaseUser.auth.getUser();
-    if (userError || !user) {
-      return new Response(
-        JSON.stringify({ error: "Unauthorized" }),
-        { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
-    }
+    // Authenticate user
+    const authResult = await requireAuth(req, logger);
+    if (authResult instanceof Response) return authResult;
+    const { user, supabaseUser } = authResult;
 
     // Parse + validate input
     const body = await req.json();
     const parsed = createOrderSchema.safeParse(body);
     if (!parsed.success) {
-      return new Response(
-        JSON.stringify({ error: "Invalid request data", details: parsed.error.issues }),
-        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
+      logger.warn("Validation failed", { errors: parsed.error.issues });
+      return errorResponse("Invalid request data", 400, parsed.error.issues);
     }
 
     const input: CreateOrderInput = parsed.data;
+    logger.info("Processing order", { vendorId: input.vendor_id, itemCount: input.items.length });
 
-    // Rate limiting (per user + endpoint)
-    const { data: allowed, error: rateLimitError } = await supabaseAdmin.rpc("check_rate_limit", {
-      p_user_id: user.id,
-      p_endpoint: RATE_LIMIT.endpoint,
-      p_limit: RATE_LIMIT.maxRequests,
-      p_window: RATE_LIMIT.window,
-    });
+    // Rate limiting
+    const rateLimitResult = await checkRateLimit(supabaseAdmin, user.id, RATE_LIMIT, logger);
+    if (rateLimitResult instanceof Response) return rateLimitResult;
 
-    if (rateLimitError) {
-      console.error("Rate limit check failed:", rateLimitError);
-      return new Response(
-        JSON.stringify({ error: "Rate limit check failed" }),
-        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
-    }
-
-    if (!allowed) {
-      return new Response(
-        JSON.stringify({ error: "Too many requests" }),
-        { status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
-    }
+    // Create audit logger for this request
+    const audit = createAuditLogger(supabaseAdmin, user.id, requestId, logger);
 
     // ========================================================================
     // STEP 1: Validate vendor exists and is active
@@ -118,17 +89,13 @@ Deno.serve(async (req) => {
       .single();
 
     if (vendorError || !vendor) {
-      return new Response(
-        JSON.stringify({ error: "Vendor not found" }),
-        { status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
+      logger.warn("Vendor not found", { vendorId: input.vendor_id });
+      return errorResponse("Vendor not found", 404);
     }
 
     if (vendor.status !== "active") {
-      return new Response(
-        JSON.stringify({ error: "Vendor is not active" }),
-        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
+      logger.warn("Vendor not active", { vendorId: input.vendor_id, status: vendor.status });
+      return errorResponse("Vendor is not active", 400);
     }
 
     // ========================================================================
@@ -171,10 +138,8 @@ Deno.serve(async (req) => {
     }
 
     if (!table) {
-      return new Response(
-        JSON.stringify({ error: "Table not found or inactive" }),
-        { status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
+      logger.warn("Table not found", { tableCode: rawTableInput, vendorId: input.vendor_id });
+      return errorResponse("Table not found or inactive", 404);
     }
 
     // ========================================================================
@@ -188,10 +153,8 @@ Deno.serve(async (req) => {
       .eq("vendor_id", input.vendor_id);
 
     if (menuItemsError || !menuItems || menuItems.length === 0) {
-      return new Response(
-        JSON.stringify({ error: "Menu items not found" }),
-        { status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
+      logger.warn("Menu items not found", { menuItemIds });
+      return errorResponse("Menu items not found", 404);
     }
 
     // Validate all items belong to vendor and are available
@@ -199,22 +162,13 @@ Deno.serve(async (req) => {
     for (const inputItem of input.items) {
       const menuItem = menuItemsMap.get(inputItem.menu_item_id);
       if (!menuItem) {
-        return new Response(
-          JSON.stringify({ error: `Menu item ${inputItem.menu_item_id} not found` }),
-          { status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-        );
+        return errorResponse(`Menu item ${inputItem.menu_item_id} not found`, 404);
       }
       if (!menuItem.is_available) {
-        return new Response(
-          JSON.stringify({ error: `Menu item ${menuItem.name} is not available` }),
-          { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-        );
+        return errorResponse(`Menu item ${menuItem.name} is not available`, 400);
       }
       if (inputItem.qty <= 0) {
-        return new Response(
-          JSON.stringify({ error: `Invalid quantity for ${menuItem.name}` }),
-          { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-        );
+        return errorResponse(`Invalid quantity for ${menuItem.name}`, 400);
       }
     }
 
@@ -235,7 +189,6 @@ Deno.serve(async (req) => {
       };
     });
 
-    // Round to 2 decimal places
     totalAmount = Math.round(totalAmount * 100) / 100;
 
     // ========================================================================
@@ -251,7 +204,6 @@ Deno.serve(async (req) => {
     let attempts = 0;
     let codeExists = true;
 
-    // Ensure unique order code (retry if collision)
     while (codeExists && attempts < 10) {
       const { data: existing } = await supabaseAdmin
         .from("orders")
@@ -269,20 +221,13 @@ Deno.serve(async (req) => {
     }
 
     if (codeExists) {
-      return new Response(
-        JSON.stringify({ error: "Failed to generate unique order code" }),
-        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
+      logger.error("Failed to generate unique order code after retries");
+      return errorResponse("Failed to generate unique order code", 500);
     }
 
     // ========================================================================
-    // STEP 6: Insert order and order items in transaction
+    // STEP 6: Insert order and order items
     // ========================================================================
-    // Note: Supabase doesn't support explicit transactions in Edge Functions,
-    // but we use a single insert for order, then insert items.
-    // If items insert fails, we'd need cleanup logic (or use a stored procedure).
-
-    // Insert order
     const { data: order, error: orderError } = await supabaseAdmin
       .from("orders")
       .insert({
@@ -300,10 +245,8 @@ Deno.serve(async (req) => {
       .single();
 
     if (orderError || !order) {
-      return new Response(
-        JSON.stringify({ error: "Failed to create order", details: orderError?.message }),
-        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
+      logger.error("Failed to create order", { error: orderError?.message });
+      return errorResponse("Failed to create order", 500, orderError?.message);
     }
 
     // Insert order items
@@ -318,39 +261,39 @@ Deno.serve(async (req) => {
       .select();
 
     if (itemsError || !insertedItems) {
-      // If items insert fails, we should ideally rollback the order
-      // For now, log error and return failure
-      console.error("Failed to insert order items:", itemsError);
-      // Attempt cleanup
+      logger.error("Failed to insert order items, cleaning up order", { error: itemsError?.message });
       await supabaseAdmin.from("orders").delete().eq("id", order.id);
-
-      return new Response(
-        JSON.stringify({ error: "Failed to create order items", details: itemsError?.message }),
-        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
+      return errorResponse("Failed to create order items", 500, itemsError?.message);
     }
 
     // ========================================================================
-    // STEP 7: Return created order with items
+    // STEP 7: Write audit log
     // ========================================================================
-    return new Response(
-      JSON.stringify({
-        success: true,
-        order: {
-          ...order,
-          items: insertedItems,
-        },
-      }),
-      {
-        status: 201,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      }
-    );
+    await audit.log(AuditAction.ORDER_CREATE, EntityType.ORDER, order.id, {
+      vendorId: input.vendor_id,
+      tableId: table.id,
+      orderCode,
+      totalAmount,
+      itemCount: input.items.length,
+    });
+
+    // ========================================================================
+    // STEP 8: Return created order with items
+    // ========================================================================
+    const durationMs = Date.now() - startTime;
+    logger.requestEnd(201, durationMs);
+
+    return jsonResponse({
+      success: true,
+      requestId,
+      order: {
+        ...order,
+        items: insertedItems,
+      },
+    }, 201);
   } catch (error) {
-    console.error("Order creation error:", error);
-    return new Response(
-      JSON.stringify({ error: "Internal server error", details: String(error) }),
-      { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-    );
+    const durationMs = Date.now() - startTime;
+    logger.error("Order creation error", { error: String(error), durationMs });
+    return errorResponse("Internal server error", 500, String(error));
   }
 });

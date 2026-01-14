@@ -26,7 +26,8 @@ WHERE n.nspname = 'public'
         'order_items',
         'reservations',
         'profiles',
-        'audit_logs'
+        'audit_logs',
+        'api_rate_limits'
     )
 ORDER BY c.relname;
 
@@ -66,10 +67,12 @@ WITH expected_policies AS (
     UNION ALL SELECT 'vendors', 'vendors_update'
     UNION ALL SELECT 'vendors', 'vendors_insert_admin_only'
     UNION ALL SELECT 'vendors', 'vendors_delete_admin_only'
+    UNION ALL SELECT 'vendors', 'vendors_anon_select_active'
     UNION ALL SELECT 'vendor_users', 'vendor_users_select'
     UNION ALL SELECT 'vendor_users', 'vendor_users_write'
     UNION ALL SELECT 'menu_items', 'menu_items_select'
     UNION ALL SELECT 'menu_items', 'menu_items_write'
+    UNION ALL SELECT 'menu_items', 'menu_items_anon_select_active'
     UNION ALL SELECT 'tables', 'tables_select'
     UNION ALL SELECT 'tables', 'tables_write'
     UNION ALL SELECT 'tables', 'tables_select_public_by_code'
@@ -79,6 +82,15 @@ WITH expected_policies AS (
     UNION ALL SELECT 'reservations', 'reservations_select'
     UNION ALL SELECT 'reservations', 'reservations_insert_client'
     UNION ALL SELECT 'reservations', 'reservations_update_vendor'
+    UNION ALL SELECT 'profiles', 'profiles_select_own'
+    UNION ALL SELECT 'profiles', 'profiles_update_own'
+    UNION ALL SELECT 'profiles', 'profiles_insert_own'
+    UNION ALL SELECT 'profiles', 'profiles_admin_select_all'
+    UNION ALL SELECT 'audit_logs', 'audit_logs_admin_select'
+    UNION ALL SELECT 'audit_logs', 'audit_logs_service_insert'
+    UNION ALL SELECT 'api_rate_limits', 'api_rate_limits_select_own'
+    UNION ALL SELECT 'api_rate_limits', 'api_rate_limits_modify_own'
+    UNION ALL SELECT 'api_rate_limits', 'api_rate_limits_admin_all'
 )
 SELECT 
     e.tablename,

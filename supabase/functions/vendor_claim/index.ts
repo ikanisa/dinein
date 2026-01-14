@@ -1,13 +1,22 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { z } from "https://deno.land/x/zod@v3.22.4/mod.ts";
+import {
+  handleCors,
+  jsonResponse,
+  errorResponse,
+  createAdminClient,
+  requireAuth,
+  checkRateLimit,
+  requireAdmin,
+  createLogger,
+  getOrCreateRequestId,
+  createAuditLogger,
+  AuditAction,
+  EntityType,
+  RateLimitConfig,
+} from "../_lib/mod.ts";
 
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
-  "Access-Control-Allow-Methods": "POST, OPTIONS",
-};
-
+// --- Input Validation Schema ---
 const vendorClaimSchema = z.object({
   google_place_id: z.string().min(1),
   slug: z.string().min(1).optional().nullable(),
@@ -25,107 +34,61 @@ const vendorClaimSchema = z.object({
 
 type VendorClaimInput = z.infer<typeof vendorClaimSchema>;
 
-const RATE_LIMIT = {
+const RATE_LIMIT: RateLimitConfig = {
   maxRequests: 10,
   window: "1 hour",
   endpoint: "vendor_claim",
 };
 
 Deno.serve(async (req) => {
+  const startTime = Date.now();
+  const requestId = getOrCreateRequestId(req);
+  const logger = createLogger({ requestId, action: "vendor_claim" });
+
   // Handle CORS preflight
-  if (req.method === "OPTIONS") {
-    return new Response("ok", { headers: corsHeaders });
-  }
+  const corsResponse = handleCors(req);
+  if (corsResponse) return corsResponse;
 
   if (req.method !== "POST") {
-    return new Response(
-      JSON.stringify({ error: "Method not allowed" }),
-      { status: 405, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-    );
+    return errorResponse("Method not allowed", 405);
   }
 
   try {
-    // Initialize service role client
-    const supabaseAdmin = createClient(
-      Deno.env.get("SUPABASE_URL") ?? "",
-      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? ""
-    );
+    logger.requestStart(req.method, "/vendor_claim");
 
-    // Initialize user client for auth verification
-    const authHeader = req.headers.get("Authorization");
-    if (!authHeader) {
-      return new Response(
-        JSON.stringify({ error: "Missing authorization header" }),
-        { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
-    }
+    const supabaseAdmin = createAdminClient();
 
-    const supabaseUser = createClient(
-      Deno.env.get("SUPABASE_URL") ?? "",
-      Deno.env.get("SUPABASE_ANON_KEY") ?? "",
-      { global: { headers: { Authorization: authHeader } } }
-    );
+    // Authenticate user
+    const authResult = await requireAuth(req, logger);
+    if (authResult instanceof Response) return authResult;
+    const { user } = authResult;
 
-    // Get authenticated user
-    const { data: { user }, error: userError } = await supabaseUser.auth.getUser();
-    if (userError || !user) {
-      return new Response(
-        JSON.stringify({ error: "Unauthorized - must be signed in" }),
-        { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
-    }
+    // ========================================================================
+    // STEP 1: Require admin access (vendor creation is admin-only)
+    // ========================================================================
+    const adminResult = await requireAdmin(supabaseAdmin, user.id, logger);
+    if (adminResult instanceof Response) return adminResult;
 
-    // Check if user is admin (REQUIRED for vendor creation)
-    const { data: adminCheck } = await supabaseAdmin
-      .from("admin_users")
-      .select("id")
-      .eq("auth_user_id", user.id)
-      .eq("is_active", true)
-      .single();
-
-    if (!adminCheck) {
-      return new Response(
-        JSON.stringify({ error: "Forbidden - admin access required to create vendors" }),
-        { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
-    }
-
-    // Parse + validate request body
+    // Parse + validate input
     const body = await req.json();
     const parsed = vendorClaimSchema.safeParse(body);
     if (!parsed.success) {
-      return new Response(
-        JSON.stringify({ error: "Invalid request data", details: parsed.error.issues }),
-        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
+      logger.warn("Validation failed", { errors: parsed.error.issues });
+      return errorResponse("Invalid request data", 400, parsed.error.issues);
     }
 
     const input: VendorClaimInput = parsed.data;
+    logger.info("Processing vendor claim", { googlePlaceId: input.google_place_id, name: input.name });
 
-    const { data: allowed, error: rateLimitError } = await supabaseAdmin.rpc("check_rate_limit", {
-      p_user_id: user.id,
-      p_endpoint: RATE_LIMIT.endpoint,
-      p_limit: RATE_LIMIT.maxRequests,
-      p_window: RATE_LIMIT.window,
-    });
+    // Rate limiting
+    const rateLimitResult = await checkRateLimit(supabaseAdmin, user.id, RATE_LIMIT, logger);
+    if (rateLimitResult instanceof Response) return rateLimitResult;
 
-    if (rateLimitError) {
-      console.error("Rate limit check failed:", rateLimitError);
-      return new Response(
-        JSON.stringify({ error: "Rate limit check failed" }),
-        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
-    }
-
-    if (!allowed) {
-      return new Response(
-        JSON.stringify({ error: "Too many requests" }),
-        { status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
-    }
+    // Create audit logger
+    const audit = createAuditLogger(supabaseAdmin, user.id, requestId, logger);
 
     // ========================================================================
-    // STEP 1: Check if vendor already exists with this google_place_id
+    // STEP 2: Check if vendor already exists with this google_place_id
     // ========================================================================
     const { data: existingVendor } = await supabaseAdmin
       .from("vendors")
@@ -143,43 +106,36 @@ Deno.serve(async (req) => {
         .single();
 
       if (existingMember) {
-        return new Response(
-          JSON.stringify({ 
-            error: "Vendor already claimed",
-            vendor_id: existingVendor.id,
-            message: "You are already a member of this vendor"
-          }),
-          { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-        );
+        logger.warn("Vendor already claimed by this user", { vendorId: existingVendor.id });
+        return errorResponse("Vendor already claimed", 400, {
+          vendor_id: existingVendor.id,
+          message: "You are already a member of this vendor",
+        });
       } else {
-        return new Response(
-          JSON.stringify({ 
-            error: "Vendor already exists",
-            vendor_id: existingVendor.id,
-            message: "This venue has already been claimed by another user"
-          }),
-          { status: 409, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-        );
+        logger.warn("Vendor already exists", { vendorId: existingVendor.id });
+        return errorResponse("Vendor already exists", 409, {
+          vendor_id: existingVendor.id,
+          message: "This venue has already been claimed by another user",
+        });
       }
     }
 
     // ========================================================================
-    // STEP 2: Generate unique slug
+    // STEP 3: Generate unique slug
     // ========================================================================
     const generateSlug = (name: string): string => {
       return name
         .toLowerCase()
         .trim()
-        .replace(/[^\w\s-]/g, "") // Remove special characters
-        .replace(/[\s_-]+/g, "-") // Replace spaces/underscores with hyphens
-        .replace(/^-+|-+$/g, ""); // Remove leading/trailing hyphens
+        .replace(/[^\w\s-]/g, "")
+        .replace(/[\s_-]+/g, "-")
+        .replace(/^-+|-+$/g, "");
     };
 
     let slug = input.slug || generateSlug(input.name);
     let slugAttempts = 0;
     let slugExists = true;
 
-    // Ensure unique slug (retry if collision)
     while (slugExists && slugAttempts < 10) {
       const { data: existing } = await supabaseAdmin
         .from("vendors")
@@ -196,14 +152,12 @@ Deno.serve(async (req) => {
     }
 
     if (slugExists) {
-      return new Response(
-        JSON.stringify({ error: "Failed to generate unique slug" }),
-        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
+      logger.error("Failed to generate unique slug after retries");
+      return errorResponse("Failed to generate unique slug", 500);
     }
 
     // ========================================================================
-    // STEP 3: Create vendor record
+    // STEP 4: Create vendor record
     // ========================================================================
     const vendorData = {
       google_place_id: input.google_place_id,
@@ -218,7 +172,7 @@ Deno.serve(async (req) => {
       phone: input.phone || null,
       revolut_link: input.revolut_link || null,
       whatsapp: input.whatsapp || null,
-      status: "pending", // Requires admin approval
+      status: "pending",
       country: "MT",
     };
 
@@ -229,15 +183,12 @@ Deno.serve(async (req) => {
       .single();
 
     if (vendorError || !vendor) {
-      console.error("Failed to create vendor:", vendorError);
-      return new Response(
-        JSON.stringify({ error: "Failed to create vendor", details: vendorError?.message }),
-        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
+      logger.error("Failed to create vendor", { error: vendorError?.message });
+      return errorResponse("Failed to create vendor", 500, vendorError?.message);
     }
 
     // ========================================================================
-    // STEP 4: Create vendor_users membership with owner role
+    // STEP 5: Create vendor_users membership with owner role
     // ========================================================================
     const { data: vendorUser, error: vendorUserError } = await supabaseAdmin
       .from("vendor_users")
@@ -251,37 +202,38 @@ Deno.serve(async (req) => {
       .single();
 
     if (vendorUserError || !vendorUser) {
-      // If membership creation fails, cleanup vendor
-      console.error("Failed to create vendor membership:", vendorUserError);
+      logger.error("Failed to create vendor membership, cleaning up vendor", { error: vendorUserError?.message });
       await supabaseAdmin.from("vendors").delete().eq("id", vendor.id);
-
-      return new Response(
-        JSON.stringify({ error: "Failed to create vendor membership", details: vendorUserError?.message }),
-        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
+      return errorResponse("Failed to create vendor membership", 500, vendorUserError?.message);
     }
 
     // ========================================================================
-    // STEP 5: Return created vendor with membership
+    // STEP 6: Write audit log
     // ========================================================================
-    return new Response(
-      JSON.stringify({
-        success: true,
-        vendor: {
-          ...vendor,
-          membership: vendorUser,
-        },
-      }),
-      {
-        status: 201,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      }
-    );
+    await audit.log(AuditAction.VENDOR_CLAIM, EntityType.VENDOR, vendor.id, {
+      googlePlaceId: input.google_place_id,
+      name: input.name,
+      slug,
+      status: "pending",
+    });
+
+    // ========================================================================
+    // STEP 7: Return created vendor with membership
+    // ========================================================================
+    const durationMs = Date.now() - startTime;
+    logger.requestEnd(201, durationMs);
+
+    return jsonResponse({
+      success: true,
+      requestId,
+      vendor: {
+        ...vendor,
+        membership: vendorUser,
+      },
+    }, 201);
   } catch (error) {
-    console.error("Vendor claim error:", error);
-    return new Response(
-      JSON.stringify({ error: "Internal server error", details: String(error) }),
-      { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-    );
+    const durationMs = Date.now() - startTime;
+    logger.error("Vendor claim error", { error: String(error), durationMs });
+    return errorResponse("Internal server error", 500, String(error));
   }
 });
