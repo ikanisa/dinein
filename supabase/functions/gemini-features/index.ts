@@ -111,7 +111,7 @@ async function callGemini(
   // Determine primary and fallback models
   let primaryModel = model || GEMINI_MODELS.text;
   let fallbackModel: string | null = null;
-  
+
   if (primaryModel === GEMINI_MODELS.text) {
     fallbackModel = GEMINI_MODELS.textFallback;
   } else if (primaryModel === GEMINI_MODELS.vision) {
@@ -165,7 +165,7 @@ async function callGemini(
   }
 
   const data = await response.json();
-  
+
   // Extract text content
   if (data.candidates?.[0]?.content?.parts) {
     const textPart = data.candidates[0].content.parts.find((p: any) => p.text);
@@ -184,7 +184,7 @@ function parseJSON(text: string | undefined, fallback: any = []): any {
   if (!text) return fallback;
   const jsonMatch = text.match(/\[[\s\S]*\]|{[\s\S]*}/);
   if (!jsonMatch) return fallback;
-  
+
   let jsonText = jsonMatch[0].replace(/,(\s*[}\]])/g, '$1');
   try {
     return JSON.parse(jsonText);
@@ -203,10 +203,10 @@ function calculateDistance(lat1: number, lng1: number, lat2: number, lng2: numbe
   const φ2 = lat2 * Math.PI / 180;
   const Δφ = (lat2 - lat1) * Math.PI / 180;
   const Δλ = (lng2 - lng1) * Math.PI / 180;
-  const a = Math.sin(Δφ/2) * Math.sin(Δφ/2) +
-            Math.cos(φ1) * Math.cos(φ2) *
-            Math.sin(Δλ/2) * Math.sin(Δλ/2);
-  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+  const a = Math.sin(Δφ / 2) * Math.sin(Δφ / 2) +
+    Math.cos(φ1) * Math.cos(φ2) *
+    Math.sin(Δλ / 2) * Math.sin(Δλ / 2);
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
   return Math.round(R * c);
 }
 
@@ -329,7 +329,7 @@ Return as JSON array${lat && lng ? ' sorted by distance' : ''}.`;
   });
 
   const venues = parseJSON(result.text, []);
-  
+
   // Format phone numbers and calculate distances
   const processed = venues.map((venue: any) => {
     if (venue.phone) {
@@ -457,7 +457,7 @@ async function handleGenerateImage(payload: {
   }
 
   const url = `${GEMINI_API_URL}/models/${GEMINI_MODELS.imagePro}:generateContent?key=${apiKey}`;
-  
+
   const response = await fetch(url, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -488,7 +488,7 @@ async function handleGenerateImage(payload: {
       }
     }
   }
-  
+
   return null;
 }
 
@@ -558,39 +558,7 @@ Deno.serve(async (req) => {
       );
     }
 
-    const authHeader = req.headers.get("Authorization");
-    if (!authHeader) {
-      return new Response(
-        JSON.stringify({ error: "Missing authorization header" }),
-        { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
-    }
-
-    const supabaseUrl = Deno.env.get("SUPABASE_URL") ?? "";
-    const supabaseAnonKey = Deno.env.get("SUPABASE_ANON_KEY") ?? "";
-    const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "";
-    if (!supabaseUrl || !supabaseAnonKey || !supabaseServiceKey) {
-      return new Response(
-        JSON.stringify({ error: "Supabase environment variables missing" }),
-        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
-    }
-
-    const supabaseUser = createClient(
-      supabaseUrl,
-      supabaseAnonKey,
-      { global: { headers: { Authorization: authHeader } } }
-    );
-    const { data: { user }, error: userError } = await supabaseUser.auth.getUser();
-    if (userError || !user) {
-      return new Response(
-        JSON.stringify({ error: "Unauthorized" }),
-        { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
-    }
-
-    const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey);
-
+    // Parse body first to determine action
     let body: unknown;
     try {
       body = await req.json();
@@ -610,6 +578,47 @@ Deno.serve(async (req) => {
     }
 
     const { action, payload } = parsed.data;
+
+    // Actions that can be called anonymously (public discovery)
+    const anonymousActions = ["discover", "adapt", "search"];
+    const isAnonymousAllowed = anonymousActions.includes(action);
+
+    const supabaseUrl = Deno.env.get("SUPABASE_URL") ?? "";
+    const supabaseAnonKey = Deno.env.get("SUPABASE_ANON_KEY") ?? "";
+    const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "";
+    if (!supabaseUrl || !supabaseAnonKey || !supabaseServiceKey) {
+      return new Response(
+        JSON.stringify({ error: "Supabase environment variables missing" }),
+        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    // Check auth for non-anonymous actions
+    const authHeader = req.headers.get("Authorization");
+    let user: { id: string } | null = null;
+
+    if (authHeader) {
+      const supabaseUser = createClient(
+        supabaseUrl,
+        supabaseAnonKey,
+        { global: { headers: { Authorization: authHeader } } }
+      );
+      const { data, error: userError } = await supabaseUser.auth.getUser();
+      if (!userError && data.user) {
+        user = { id: data.user.id };
+      }
+    }
+
+    // Require auth for non-anonymous actions
+    if (!isAnonymousAllowed && !user) {
+      return new Response(
+        JSON.stringify({ error: "Unauthorized" }),
+        { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey);
+
     const payloadSchema = payloadSchemas[action as GeminiAction];
     const payloadParsed = payloadSchema.safeParse(payload ?? {});
     if (!payloadParsed.success) {
@@ -621,24 +630,21 @@ Deno.serve(async (req) => {
 
     const validatedPayload = payloadParsed.data;
 
+    // Rate limiting (use IP for anonymous, user ID for authenticated)
+    const rateLimitId = user?.id || req.headers.get("cf-connecting-ip") || "anonymous";
     const { data: allowed, error: rateLimitError } = await supabaseAdmin.rpc("check_rate_limit", {
-      p_user_id: user.id,
+      p_user_id: rateLimitId,
       p_endpoint: `${RATE_LIMIT.endpointPrefix}_${action}`,
-      p_limit: RATE_LIMIT.maxRequests,
+      p_limit: isAnonymousAllowed && !user ? 10 : RATE_LIMIT.maxRequests, // Lower limit for anonymous
       p_window: RATE_LIMIT.window,
     });
 
     if (rateLimitError) {
       console.error("Rate limit check failed:", rateLimitError);
+      // Don't block on rate limit errors - log and continue
+    } else if (!allowed) {
       return new Response(
-        JSON.stringify({ error: "Rate limit check failed" }),
-        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
-    }
-
-    if (!allowed) {
-      return new Response(
-        JSON.stringify({ error: "Too many requests" }),
+        JSON.stringify({ error: "Too many requests. Please try again later." }),
         { status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
