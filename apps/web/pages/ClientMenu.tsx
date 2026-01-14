@@ -247,7 +247,7 @@ const ClientMenu = () => {
         <GlassCard className="w-full max-w-md bg-surface border border-border p-6 rounded-3xl">
           <div className="flex justify-between items-center mb-8">
             <h2 className="text-2xl font-bold text-foreground">Pay Bill</h2>
-            <button onClick={() => setShowPaymentModal(false)} className="w-8 h-8 rounded-full bg-surface-highlight flex items-center justify-center text-foreground">✕</button>
+            <button onClick={() => setShowPaymentModal(false)} aria-label="Close payment modal" className="w-8 h-8 rounded-full bg-surface-highlight flex items-center justify-center text-foreground">✕</button>
           </div>
 
           <div className="text-center mb-8">
@@ -357,7 +357,7 @@ const ClientMenu = () => {
         />
 
         <div className="absolute top-safe px-4 py-2 z-20 w-full flex justify-between items-start">
-          <button onClick={() => navigate('/')} className="w-10 h-10 rounded-full bg-black/40 backdrop-blur-md flex items-center justify-center text-white border border-white/10 active:scale-90 transition">
+          <button onClick={() => navigate('/')} aria-label="Go back to home" className="w-10 h-10 rounded-full bg-black/40 backdrop-blur-md flex items-center justify-center text-white border border-white/10 active:scale-90 transition">
             ⬅
           </button>
           {myOrders.length > 0 && (
@@ -429,6 +429,7 @@ const ClientMenu = () => {
                 <span className="font-bold text-lg text-foreground">€{item.price.toFixed(2)}</span>
                 <button
                   onClick={() => addToCart(item)}
+                  aria-label={`Add ${item.name} to cart`}
                   className="w-8 h-8 rounded-full bg-foreground text-background flex items-center justify-center font-bold text-lg active:scale-90 transition-transform shadow-lg"
                 >
                   +
@@ -491,7 +492,7 @@ const ClientMenu = () => {
 
             <div className="flex justify-between items-center mb-6">
               <h2 className="text-2xl font-bold text-foreground">Your Order</h2>
-              <button onClick={() => setIsReviewOpen(false)} className="w-8 h-8 rounded-full bg-surface-highlight flex items-center justify-center text-muted">✕</button>
+              <button onClick={() => setIsReviewOpen(false)} aria-label="Close order review" className="w-8 h-8 rounded-full bg-surface-highlight flex items-center justify-center text-muted">✕</button>
             </div>
 
             {/* Table Reference Input */}
@@ -518,9 +519,9 @@ const ClientMenu = () => {
                 <div key={idx} className="flex justify-between items-center bg-surface-highlight p-3 rounded-xl border border-border">
                   <div className="flex items-center gap-3">
                     <div className="flex items-center gap-1 bg-background rounded-lg p-1 border border-border">
-                      <button onClick={() => removeFromCart(line.item.id)} className="w-8 h-8 flex items-center justify-center text-muted hover:text-foreground font-bold active:scale-90 transition">-</button>
+                      <button onClick={() => removeFromCart(line.item.id)} aria-label={`Remove one ${line.item.name}`} className="w-8 h-8 flex items-center justify-center text-muted hover:text-foreground font-bold active:scale-90 transition">-</button>
                       <span className="font-bold w-6 text-center text-sm text-foreground">{line.quantity}</span>
-                      <button onClick={() => addToCart(line.item)} className="w-8 h-8 flex items-center justify-center text-foreground font-bold active:scale-90 transition">+</button>
+                      <button onClick={() => addToCart(line.item)} aria-label={`Add one more ${line.item.name}`} className="w-8 h-8 flex items-center justify-center text-foreground font-bold active:scale-90 transition">+</button>
                     </div>
                     <div className="min-w-0 flex-1">
                       <div className="font-bold text-sm truncate pr-2 text-foreground">{line.item.name}</div>

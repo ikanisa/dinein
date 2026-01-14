@@ -116,6 +116,7 @@ const ClientOrderStatus = () => {
         <div className="flex items-center justify-between mb-6">
           <button
             onClick={() => navigate(-1)}
+            aria-label="Go back"
             className="w-10 h-10 rounded-full bg-surface-highlight flex items-center justify-center text-foreground"
           >
             ←

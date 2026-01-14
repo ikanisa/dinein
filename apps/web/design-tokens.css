@@ -209,8 +209,9 @@
 
     /* Text */
     --text-main: var(--color-ink);
-    --text-muted: #5D5F78;
-    --text-subtle: #8E93A8;
+    /* WCAG 4.5:1 compliant muted text */
+    --text-muted: #4D4F68;
+    --text-subtle: #6E7388;
     --text-inverse: #FFFFFF;
 
     /* Borders */
@@ -260,8 +261,9 @@
 
     /* Text */
     --text-main: #F5F7FF;
-    --text-muted: #A0A8C8;
-    --text-subtle: #6B7494;
+    /* WCAG 4.5:1 compliant muted text (dark mode) */
+    --text-muted: #B8C0E0;
+    --text-subtle: #8B94B4;
     --text-inverse: #0E1120;
 
     /* Borders */
