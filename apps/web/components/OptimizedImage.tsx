@@ -25,22 +25,52 @@ export interface OptimizedImageProps {
 }
 
 /**
+ * Generate WebP/AVIF sources for modern image formats
+ * Falls back to original format if not supported
+ */
+const generateModernFormatSrc = (src: string, format: 'webp' | 'avif'): string => {
+  if (!src || src.startsWith('data:')) return src;
+  
+  // For Supabase Storage URLs, use format parameter
+  if (src.includes('supabase.co/storage')) {
+    const separator = src.includes('?') ? '&' : '?';
+    return `${src}${separator}format=${format}`;
+  }
+  
+  // For other URLs, try to replace extension (basic implementation)
+  // In production, you'd want a more robust solution or use an image CDN
+  const ext = src.split('.').pop()?.toLowerCase();
+  if (ext && ['jpg', 'jpeg', 'png'].includes(ext)) {
+    return src.replace(/\.(jpg|jpeg|png)$/i, `.${format}`);
+  }
+  
+  return src;
+};
+
+/**
  * Generate srcset for responsive images
  */
-const generateSrcSet = (src: string): string | undefined => {
-  if (!src || src.startsWith('data:') || src.includes('?')) {
+const generateSrcSet = (src: string, format?: 'webp' | 'avif'): string | undefined => {
+  if (!src || src.startsWith('data:')) {
     return undefined;
   }
 
+  const baseSrc = format ? generateModernFormatSrc(src, format) : src;
+  const widths = [320, 640, 960, 1280, 1920];
+
   // For Supabase Storage URLs, append width transforms
   if (src.includes('supabase.co/storage')) {
-    const widths = [320, 640, 960, 1280, 1920];
+    const separator = baseSrc.includes('?') ? '&' : '?';
     return widths
-      .map(w => `${src}?width=${w}&quality=80 ${w}w`)
+      .map(w => `${baseSrc}${separator}width=${w}&quality=80 ${w}w`)
       .join(', ');
   }
 
-  return undefined;
+  // For other URLs, generate responsive srcset
+  // Note: This assumes your image service supports width parameters
+  return widths
+    .map(w => `${baseSrc}?w=${w} ${w}w`)
+    .join(', ');
 };
 
 /**
@@ -85,27 +115,54 @@ export const OptimizedImage: React.FC<OptimizedImageProps> = React.memo(({
     height: '100%',
   };
 
-  // For priority images, use native img with eager loading
+  // For priority images, use picture element with WebP/AVIF support (optimized for LCP)
   if (priority) {
+    const webpSrcSet = generateSrcSet(src, 'webp');
+    const avifSrcSet = generateSrcSet(src, 'avif');
+    const fallbackSrcSet = generateSrcSet(src);
+    const webpSrc = generateModernFormatSrc(src, 'webp');
+    const avifSrc = generateModernFormatSrc(src, 'avif');
+
     return (
       <div className={`relative ${wrapperClassName}`} style={containerStyle}>
-        <img
-          src={src}
-          alt={alt}
-          className={`w-full h-full ${className}`}
-          style={imageStyle}
-          loading="eager"
-          decoding="async"
-          fetchPriority="high"
-          sizes={generateSizes(sizes)}
-          srcSet={generateSrcSet(src)}
-          onLoad={onLoad}
-          onError={handleError}
-          width={width}
-          height={height}
-        />
+        <picture>
+          {/* AVIF format (best compression, modern browsers) */}
+          {avifSrcSet && (
+            <source
+              type="image/avif"
+              srcSet={avifSrcSet}
+              sizes={generateSizes(sizes)}
+            />
+          )}
+          {/* WebP format (good compression, wide support) */}
+          {webpSrcSet && (
+            <source
+              type="image/webp"
+              srcSet={webpSrcSet}
+              sizes={generateSizes(sizes)}
+            />
+          )}
+          {/* Fallback to original format */}
+          <img
+            src={src}
+            alt={alt}
+            className={`w-full h-full ${className}`}
+            style={imageStyle}
+            loading="eager"
+            decoding="async"
+            fetchPriority="high"
+            sizes={generateSizes(sizes)}
+            srcSet={fallbackSrcSet}
+            onLoad={onLoad}
+            onError={handleError}
+            width={width}
+            height={height}
+            // Prevent layout shift
+            {...(aspectRatio ? { style: { ...imageStyle, aspectRatio } } : { style: imageStyle })}
+          />
+        </picture>
         {hasError && (
-          <div className="absolute inset-0 bg-gray-200 dark:bg-white/10 flex items-center justify-center">
+          <div className="absolute inset-0 bg-gray-200 dark:bg-white/10 flex items-center justify-center" role="img" aria-label="Image failed to load">
             <span className="text-gray-400 text-xs">Failed to load</span>
           </div>
         )}

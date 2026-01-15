@@ -16,7 +16,7 @@ const VendorLogin = () => {
   // Redirect if already logged in as vendor/admin
   React.useEffect(() => {
     if (user && (role === 'vendor' || role === 'admin')) {
-      navigate('/vendor/dashboard', { replace: true });
+      navigate('/vendor/live', { replace: true });
     }
   }, [user, role, navigate]);
 

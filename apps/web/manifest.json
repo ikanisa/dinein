@@ -1,17 +1,47 @@
 {
-  "name": "DineIn",
+  "name": "DineIn Malta",
   "short_name": "DineIn",
-  "description": "Order food and drinks at restaurants and bars. World-class mobile-first PWA that adapts to your location.",
+  "description": "Order food and drinks from your table. World-class mobile-first PWA for dine-in ordering.",
   "start_url": "/",
   "scope": "/",
   "display": "standalone",
   "display_override": ["standalone", "fullscreen", "window-controls-overlay"],
-  "background_color": "#000000",
-  "theme_color": "#000000",
+  "background_color": "#0E1120",
+  "theme_color": "#0E1120",
   "orientation": "portrait-primary",
   "prefer_related_applications": false,
-  "categories": ["food", "lifestyle", "travel"],
+  "categories": ["food", "lifestyle"],
   "icons": [
+    {
+      "src": "/icons/icon-57.png",
+      "sizes": "57x57",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icons/icon-76.png",
+      "sizes": "76x76",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icons/icon-120.png",
+      "sizes": "120x120",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icons/icon-152.png",
+      "sizes": "152x152",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icons/icon-167.png",
+      "sizes": "167x167",
+      "type": "image/png",
+      "purpose": "any"
+    },
     {
       "src": "/icons/icon-192.png",
       "sizes": "192x192",
@@ -35,45 +65,19 @@
       "sizes": "512x512",
       "type": "image/png",
       "purpose": "maskable"
+    },
+    {
+      "src": "/icons/icon-1024.png",
+      "sizes": "1024x1024",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icons/icon-1024-maskable.png",
+      "sizes": "1024x1024",
+      "type": "image/png",
+      "purpose": "maskable"
     }
   ],
-        "screenshots": [],
-        "shortcuts": [
-          {
-            "name": "Browse Venues",
-            "short_name": "Browse",
-            "description": "Explore nearby restaurants and bars",
-            "url": "/explore",
-            "icons": [{ "src": "/icons/icon-192.png", "sizes": "192x192" }]
-          },
-          {
-            "name": "My Orders",
-            "short_name": "Orders",
-            "description": "View your current orders",
-            "url": "/profile",
-            "icons": [{ "src": "/icons/icon-192.png", "sizes": "192x192" }]
-          },
-          {
-            "name": "Search",
-            "short_name": "Search",
-            "description": "Search for venues",
-            "url": "/explore?search=true",
-            "icons": [{ "src": "/icons/icon-192.png", "sizes": "192x192" }]
-          }
-        ],
-        "share_target": {
-          "action": "/share",
-          "method": "GET",
-          "params": {
-            "title": "title",
-            "text": "text",
-            "url": "url"
-          }
-        },
-        "protocol_handlers": [
-          {
-            "protocol": "web+dinein",
-            "url": "/?venue=%s"
-          }
-        ]
+  "screenshots": []
 }

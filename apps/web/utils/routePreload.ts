@@ -9,7 +9,8 @@ const routeModules = {
     home: () => import('../pages/ClientHome'),
     explore: () => import('../pages/ClientExplore'),
     menu: () => import('../pages/ClientMenu'),
-    profile: () => import('../pages/ClientProfile'),
+    // ClientProfile removed - functionality merged into SettingsPage
+    settings: () => import('../pages/SettingsPage'),
     orderStatus: () => import('../pages/ClientOrderStatus'),
 
     // Vendor routes
@@ -66,7 +67,7 @@ export const preloadRoutes = (routes: RouteName[]): Promise<void[]> => {
 export const preloadCriticalRoutes = (): void => {
     // Use requestIdleCallback for non-blocking preload
     const preload = () => {
-        preloadRoutes(['explore', 'menu', 'profile']);
+        preloadRoutes(['explore', 'menu', 'settings']);
     };
 
     if ('requestIdleCallback' in window) {

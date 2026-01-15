@@ -1,6 +1,6 @@
 import React, { useRef } from 'react';
 import { motion, useMotionValue, useTransform, PanInfo } from 'framer-motion';
-import { hapticButton } from '@/utils/haptics';
+import { hapticButton } from '../../utils/haptics';
 
 interface SwipeableCardProps {
     children: React.ReactNode;

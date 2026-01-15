@@ -11,9 +11,18 @@ const ThemeContext = createContext<ThemeContextType | undefined>(undefined);
 
 export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [theme, setTheme] = useState<Theme>(() => {
+    // Check localStorage first
     const saved = localStorage.getItem('dinein_theme');
     if (saved === 'light' || saved === 'dark') return saved;
-    return 'dark'; // Default to dark
+    
+    // Fall back to system preference
+    if (typeof window !== 'undefined' && window.matchMedia) {
+      const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+      return prefersDark ? 'dark' : 'light';
+    }
+    
+    // Default to dark
+    return 'dark';
   });
 
   useEffect(() => {
@@ -21,8 +30,39 @@ export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     localStorage.setItem('dinein_theme', theme);
   }, [theme]);
 
+  // Listen for system theme changes
+  useEffect(() => {
+    if (typeof window === 'undefined' || !window.matchMedia) return;
+
+    const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
+    
+    // Only auto-update if user hasn't manually set a preference
+    const handleChange = (e: MediaQueryListEvent) => {
+      const saved = localStorage.getItem('dinein_theme');
+      // Only update if no manual preference is saved
+      if (!saved || (saved !== 'light' && saved !== 'dark')) {
+        setTheme(e.matches ? 'dark' : 'light');
+      }
+    };
+
+    // Modern browsers
+    if (mediaQuery.addEventListener) {
+      mediaQuery.addEventListener('change', handleChange);
+      return () => mediaQuery.removeEventListener('change', handleChange);
+    } else {
+      // Fallback for older browsers
+      mediaQuery.addListener(handleChange);
+      return () => mediaQuery.removeListener(handleChange);
+    }
+  }, []);
+
   const toggleTheme = () => {
-    setTheme(prev => prev === 'dark' ? 'light' : 'dark');
+    setTheme(prev => {
+      const newTheme = prev === 'dark' ? 'light' : 'dark';
+      // Save manual preference
+      localStorage.setItem('dinein_theme', newTheme);
+      return newTheme;
+    });
   };
 
   return (

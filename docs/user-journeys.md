@@ -33,23 +33,29 @@
 1. **Access Portal** → `/vendor/login`
 2. **Enter Credentials** → Email/password (must be provisioned by admin)
 3. **Authenticate** → Supabase validates, checks `vendor_users` table
-4. **Dashboard** → Redirects to `/vendor/dashboard`
+4. **Dashboard** → Redirects to `/vendor/live` (Live Service Dashboard)
 
-### Manage Orders
-1. **View Orders** → `/vendor/orders` shows all orders for vendor
-2. **Filter** → By status (received, served, cancelled) or date
-3. **Update Status** → 
-   - Mark as "served" when ready
-   - Mark as "cancelled" if needed
-4. **Mark Paid** → After payment received (Revolut or cash)
-5. **Refresh** → Manual refresh or auto-poll every 10-15s
+### Manage Orders (Live Dashboard)
+1. **View Live Dashboard** → `/vendor/live` shows real-time order queue
+2. **Order Status Workflow** → 
+   - **NEW** (🔴): Tap "Accept" to start preparing
+   - **PREPARING** (🟡): Tap "Mark Ready" when order is complete
+   - **READY** (🟢): Tap "Complete" after delivery
+   - **Cancel**: Cancel order at any time (emergency only)
+3. **Real-time Updates** → Orders appear instantly with sound/visual alerts
+4. **Mark Paid** → Tap payment status badge to mark as paid
+5. **Today's Stats** → View revenue, order count, avg order value at a glance
+6. **Table Status** → See which tables are occupied/have orders
 
 ### Manage Menu
-1. **View Menu** → `/vendor/menu` shows all menu items
-2. **Add Item** → Name, description, price, category, image
-3. **Edit Item** → Update price, availability, description
-4. **Toggle Availability** → Quick toggle for out-of-stock items
-5. **Bulk Import** → (Optional) Upload menu image, parse via Gemini
+1. **View Menu** → `/vendor/menu` or Quick Action "View Menu"
+2. **Quick Toggle Availability** → One-tap switch to disable/enable items ("86" an item)
+3. **Search & Filter** → Search by name, filter by category or status
+4. **Sales Stats** → See how many of each item sold today
+5. **Add Item** → Tap "+ Add Item" button
+6. **Edit Item** → Tap "✏️ Edit" on any item
+7. **Bulk Actions** → Disable all specials, enable all items
+8. **Bulk Import** → (Optional) Upload menu image, parse via Gemini
 
 ### Manage Tables
 1. **View Tables** → `/vendor/tables` shows all tables

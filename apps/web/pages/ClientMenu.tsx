@@ -5,6 +5,8 @@ import { MenuListSkeleton } from '../components/Loading';
 import { OptimizedImage } from '../components/OptimizedImage';
 import { ErrorState } from '../components/common/ErrorState';
 import { CartBar } from '../components/menu/CartBar';
+import { CartItem } from '../components/menu/CartItem';
+import { BottomSheet } from '../components/ui/BottomSheet';
 import { useMenu } from '../hooks/useMenu';
 import { getOrdersForVenue, toOrderStatus, toPaymentStatus } from '../services/databaseService';
 import { Order, OrderStatus } from '../types';
@@ -106,12 +108,17 @@ const ClientMenu = () => {
 
   if (menuLoading) {
     return (
-      <div className="pb-32 animate-fade-in pt-safe-top">
-        <div className="h-64 relative bg-gray-900 animate-pulse" />
-        <div className="p-4 space-y-4">
+      <main className="pb-32 animate-fade-in pt-safe-top" role="main" aria-label="Loading menu">
+        {/* Hero skeleton with fixed aspect ratio to prevent CLS */}
+        <div 
+          className="h-[40vh] relative bg-gray-900 animate-pulse" 
+          style={{ minHeight: '300px', aspectRatio: '16 / 9' }}
+          aria-hidden="true"
+        />
+        <div className="p-4 space-y-4" aria-live="polite" aria-busy="true">
           <MenuListSkeleton />
         </div>
-      </div>
+      </main>
     );
   }
 
@@ -179,6 +186,36 @@ const ClientMenu = () => {
     if (cart.length === 0) return;
 
     try {
+      // Validate order input
+      const { validateOrder, validateTableCode } = await import('../utils/validation');
+      const tableValidation = validateTableCode(manualTableRef.trim());
+      if (!tableValidation.valid) {
+        const { toast } = await import('react-hot-toast');
+        toast.error(tableValidation.error || 'Invalid table code');
+        setTableError(true);
+        return;
+      }
+
+      const orderInput = {
+        vendor_id: venue.id,
+        table_code: tableValidation.sanitized || manualTableRef.trim(),
+        items: cart.map(item => ({
+          menu_item_id: item.item.id,
+          quantity: item.quantity,
+          selectedOptions: item.selectedOptions,
+        })),
+        total: totalAmount,
+      };
+
+      const validation = validateOrder(orderInput);
+      if (!validation.success) {
+        const { toast } = await import('react-hot-toast');
+        const errorMessage = validation.errors.errors[0]?.message || 'Invalid order data';
+        toast.error(errorMessage);
+        console.error('Order validation failed:', validation.errors.errors);
+        return;
+      }
+
       // Use offline-aware order creation
       const { createOrderWithOfflineSupport } = await import('../services/orderService');
       const newOrder = await createOrderWithOfflineSupport({
@@ -235,7 +272,7 @@ const ClientMenu = () => {
         <GlassCard className="w-full max-w-md bg-surface border border-border p-6 rounded-3xl">
           <div className="flex justify-between items-center mb-8">
             <h2 className="text-2xl font-bold text-foreground">Pay Bill</h2>
-            <button onClick={() => setShowPaymentModal(false)} aria-label="Close payment modal" className="w-8 h-8 rounded-full bg-surface-highlight flex items-center justify-center text-foreground">✕</button>
+            <button onClick={() => setShowPaymentModal(false)} aria-label="Close payment modal" className="min-w-[48px] min-h-[48px] w-12 h-12 rounded-full bg-surface-highlight flex items-center justify-center text-foreground">✕</button>
           </div>
 
           <div className="text-center mb-8">
@@ -331,17 +368,33 @@ const ClientMenu = () => {
   }
 
   return (
-    <div className="min-h-screen pb-32 bg-background relative transition-colors duration-500">
+    <main className="min-h-screen pb-32 bg-background relative transition-colors duration-500" role="main" aria-label="Menu">
+      {/* ARIA live region for cart updates */}
+      <div 
+        aria-live="polite" 
+        aria-atomic="true" 
+        className="sr-only"
+        id="cart-announcements"
+      >
+        {totalItems > 0 && (
+          <span>
+            Cart updated: {totalItems} item{totalItems !== 1 ? 's' : ''} in cart, total €{totalAmount.toFixed(2)}
+          </span>
+        )}
+      </div>
 
-      {/* Parallax Header */}
-      <div className="h-[40vh] relative w-full overflow-hidden">
+      {/* Parallax Header - Optimized for LCP */}
+      <div className="h-[40vh] relative w-full overflow-hidden" style={{ minHeight: '300px', aspectRatio: '16 / 9' }}>
         <div className="absolute inset-0 bg-gradient-to-b from-transparent via-transparent to-black/80 z-10" />
         <OptimizedImage
           src={venue.imageUrl || `https://picsum.photos/800/800?grayscale`}
-          alt={`${venue.name} cover`}
+          alt={`${venue.name} cover image`}
           aspectRatio="16/9"
           className="w-full h-full"
           priority
+          width={800}
+          height={450}
+          sizes="100vw"
         />
 
         <div className="absolute top-safe px-4 py-2 z-20 w-full flex justify-between items-start">
@@ -351,11 +404,11 @@ const ClientMenu = () => {
               if (lastVenueId) {
                 navigate(`/v/${lastVenueId}`);
               } else {
-                navigate('/scan');
+                navigate('/');
               }
             }} 
             aria-label="Go back" 
-            className="w-10 h-10 rounded-full bg-black/40 backdrop-blur-md flex items-center justify-center text-white border border-white/10 active:scale-90 transition"
+            className="min-w-[48px] min-h-[48px] w-12 h-12 rounded-full bg-black/40 backdrop-blur-md flex items-center justify-center text-white border border-white/10 active:scale-90 transition"
           >
             ⬅
           </button>
@@ -371,7 +424,7 @@ const ClientMenu = () => {
             <button
               onClick={() => navigate('/settings')}
               aria-label="Settings"
-              className="w-10 h-10 rounded-full bg-black/40 backdrop-blur-md flex items-center justify-center text-white border border-white/10 active:scale-90 transition"
+              className="min-w-[48px] min-h-[48px] w-12 h-12 rounded-full bg-black/40 backdrop-blur-md flex items-center justify-center text-white border border-white/10 active:scale-90 transition"
             >
               ⚙️
             </button>
@@ -396,68 +449,137 @@ const ClientMenu = () => {
       </div>
 
       {/* Sticky Category Bar */}
-      <div className="sticky top-0 z-30 bg-glass backdrop-blur-xl border-b border-glassBorder py-3">
+      <nav className="sticky top-0 z-30 bg-glass backdrop-blur-xl border-b border-glassBorder py-3" role="navigation" aria-label="Menu categories">
         <div
           ref={categoryScrollRef}
           className="flex px-4 gap-3 overflow-x-auto no-scrollbar scroll-smooth"
+          role="tablist"
+          aria-label="Filter menu by category"
         >
           {categories.map(cat => (
             <button
               key={cat}
               onClick={() => setActiveCategory(cat)}
-              className={`px-5 py-2 rounded-full text-sm font-bold whitespace-nowrap transition-all flex-shrink-0 ${activeCategory === cat
-                ? 'bg-foreground text-background scale-105'
-                : 'bg-surface-highlight text-muted hover:bg-black/10'
-                }`}
+              onKeyDown={(e) => {
+                // Arrow key navigation for categories
+                if (e.key === 'ArrowLeft' || e.key === 'ArrowRight') {
+                  e.preventDefault();
+                  const currentIndex = categories.indexOf(activeCategory);
+                  const nextIndex = e.key === 'ArrowRight' 
+                    ? (currentIndex + 1) % categories.length
+                    : (currentIndex - 1 + categories.length) % categories.length;
+                  setActiveCategory(categories[nextIndex]);
+                  // Focus the new button
+                  const buttons = categoryScrollRef.current?.querySelectorAll('button');
+                  if (buttons && buttons[nextIndex]) {
+                    (buttons[nextIndex] as HTMLButtonElement).focus();
+                  }
+                }
+              }}
+              role="tab"
+              aria-selected={activeCategory === cat}
+              aria-controls={`category-${cat.toLowerCase().replace(/\s+/g, '-')}`}
+              className={`min-h-[48px] px-5 py-2 rounded-full text-sm font-bold whitespace-nowrap transition-all flex-shrink-0 focus:ring-2 focus:ring-secondary-500 focus:ring-offset-2 ${
+                activeCategory === cat
+                  ? 'bg-foreground text-background scale-105'
+                  : 'bg-surface-highlight text-muted hover:bg-black/10'
+              }`}
             >
               {cat}
             </button>
           ))}
         </div>
-      </div>
+      </nav>
 
       {/* Menu Grid */}
-      <div className="p-4 space-y-4 pb-24">
+      <section 
+        className="p-4 space-y-4 pb-24" 
+        aria-label={`Menu items in ${activeCategory} category`} 
+        id={`category-${activeCategory.toLowerCase().replace(/\s+/g, '-')}`} 
+        role="tabpanel"
+        aria-live="polite"
+        aria-atomic="false"
+      >
         {filteredItems.map(item => (
-          <GlassCard key={item.id} className="flex gap-4 p-0 overflow-hidden bg-surface border-0 shadow-sm">
-            <div className="w-28 h-28 bg-surface-highlight relative flex-shrink-0">
+          <article 
+            key={item.id} 
+            className="flex gap-4 p-0 overflow-hidden bg-surface shadow-sm rounded-xl border border-border"
+            role="article"
+            aria-labelledby={`menu-item-${item.id}-name`}
+          >
+            <div 
+              className="w-28 h-28 bg-surface-highlight relative flex-shrink-0" 
+              role="img" 
+              aria-label={`${item.name} image`}
+              style={{ aspectRatio: '1 / 1' }}
+            >
               <OptimizedImage
                 src={item.imageUrl || `https://via.placeholder.com/150?text=${encodeURIComponent(item.name)}`}
-                alt={item.name}
+                alt={`${item.name}${item.description ? ` - ${item.description}` : ''}`}
                 aspectRatio="1/1"
                 className="w-full h-full"
+                loading="lazy"
+                width={112}
+                height={112}
               />
             </div>
             <div className="flex-1 py-3 pr-3 flex flex-col justify-between">
               <div>
                 <div className="flex justify-between items-start gap-2">
-                  <h3 className="font-bold text-base leading-tight mb-1 text-foreground flex-1">{item.name}</h3>
+                  <h3 
+                    id={`menu-item-${item.id}-name`}
+                    className="font-bold text-base leading-tight mb-1 text-foreground flex-1"
+                  >
+                    {item.name}
+                  </h3>
                   <button
                     onClick={(e) => {
                       e.stopPropagation();
                       toggleFavorite(item);
                     }}
-                    className="text-xl flex-shrink-0 active:scale-90 transition-transform"
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter' || e.key === ' ') {
+                        e.preventDefault();
+                        toggleFavorite(item);
+                      }
+                    }}
+                    className="min-w-[48px] min-h-[48px] flex items-center justify-center text-xl flex-shrink-0 active:scale-90 transition-transform focus:ring-2 focus:ring-secondary-500 focus:ring-offset-2 rounded-full"
                     aria-label={isFavorite(item.id) ? `Remove ${item.name} from favorites` : `Add ${item.name} to favorites`}
+                    aria-pressed={isFavorite(item.id)}
                   >
-                    {isFavorite(item.id) ? '⭐' : '☆'}
+                    <span aria-hidden="true">{isFavorite(item.id) ? '⭐' : '☆'}</span>
                   </button>
                 </div>
-                <p className="text-xs text-muted line-clamp-2 leading-relaxed">{item.description}</p>
+                {item.description && (
+                  <p className="text-xs text-muted line-clamp-2 leading-relaxed" id={`menu-item-${item.id}-description`}>
+                    {item.description}
+                  </p>
+                )}
               </div>
 
               <div className="flex justify-between items-end mt-2">
-                <span className="font-bold text-lg text-foreground">€{item.price.toFixed(2)}</span>
+                <span 
+                  className="font-bold text-lg text-foreground"
+                  aria-label={`Price: €${item.price.toFixed(2)}`}
+                >
+                  €{item.price.toFixed(2)}
+                </span>
                 <button
                   onClick={() => addToCart(item)}
-                  aria-label={`Add ${item.name} to cart`}
-                  className="w-8 h-8 rounded-full bg-foreground text-background flex items-center justify-center font-bold text-lg active:scale-90 transition-transform shadow-lg"
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' || e.key === ' ') {
+                      e.preventDefault();
+                      addToCart(item);
+                    }
+                  }}
+                  aria-label={`Add ${item.name} to cart for €${item.price.toFixed(2)}`}
+                  className="min-w-[48px] min-h-[48px] w-12 h-12 rounded-full bg-foreground text-background flex items-center justify-center font-bold text-xl active:scale-90 transition-transform shadow-lg focus:ring-2 focus:ring-secondary-500 focus:ring-offset-2"
                 >
-                  +
+                  <span aria-hidden="true">+</span>
                 </button>
               </div>
             </div>
-          </GlassCard>
+          </article>
         ))}
         {filteredItems.length === 0 && (
           <div className="animate-fade-in pb-24">
@@ -492,89 +614,108 @@ const ClientMenu = () => {
         />
       )}
 
-      {/* Order Review Modal */}
-      {isReviewOpen && (
-        <div className="fixed inset-0 z-[70] bg-black/60 backdrop-blur-sm flex flex-col justify-end animate-fade-in" onClick={() => setIsReviewOpen(false)}>
-          <div
-            className="bg-surface rounded-t-3xl border-t border-border p-6 pb-safe-bottom w-full max-h-[85vh] overflow-y-auto animate-slide-up relative shadow-2xl"
-            onClick={e => e.stopPropagation()}
-          >
-            {/* Handle bar */}
-            <div className="w-12 h-1.5 bg-surface-highlight rounded-full mx-auto mb-6" />
+      {/* Order Review Bottom Sheet */}
+      <BottomSheet
+        isOpen={isReviewOpen}
+        onClose={() => setIsReviewOpen(false)}
+        title="Your Order"
+        height="auto"
+        swipeToClose={true}
+      >
+        {/* Table Reference Input */}
+        <div className="mb-6 bg-surface-highlight p-4 rounded-xl border border-border">
+          <label htmlFor="table-input" className="text-xs text-muted font-bold uppercase tracking-wider mb-2 block">
+            Table Number or Code (Required)
+          </label>
+          <input
+            id="table-input"
+            ref={tableInputRef}
+            type="text"
+            value={manualTableRef}
+            onChange={(e) => {
+              setManualTableRef(e.target.value);
+              if (e.target.value.trim()) setTableError(false);
+            }}
+            placeholder="e.g. 12 or TBL-ABCD"
+            aria-invalid={tableError}
+            aria-describedby={tableError ? 'table-error' : undefined}
+            className={`w-full bg-background border p-3 rounded-lg text-foreground font-bold text-lg outline-none transition-colors focus:ring-2 focus:ring-secondary-500 focus:border-secondary-500 ${
+              tableError ? 'border-red-500 animate-pulse' : 'border-border'
+            }`}
+          />
+          {tableError && (
+            <p id="table-error" className="text-red-400 text-xs mt-2 font-bold animate-pulse" role="alert">
+              Please enter your table number or code to proceed.
+            </p>
+          )}
+        </div>
 
-            <div className="flex justify-between items-center mb-6">
-              <h2 className="text-2xl font-bold text-foreground">Your Order</h2>
-              <button onClick={() => setIsReviewOpen(false)} aria-label="Close order review" className="w-8 h-8 rounded-full bg-surface-highlight flex items-center justify-center text-muted">✕</button>
-            </div>
+        {/* Cart Items with Swipe-to-Delete */}
+        <div className="space-y-3 mb-8" role="list" aria-label="Cart items">
+          {cart.map((line, idx) => (
+            <CartItem
+              key={`${line.item.id}-${idx}`}
+              item={line.item}
+              quantity={line.quantity}
+              onIncrement={() => addToCart(line.item)}
+              onDecrement={() => removeFromCart(line.item.id)}
+              onRemove={() => {
+                // Remove all instances of this item
+                for (let i = 0; i < line.quantity; i++) {
+                  removeFromCart(line.item.id);
+                }
+              }}
+            />
+          ))}
+        </div>
 
-            {/* Table Reference Input */}
-            <div className="mb-6 bg-surface-highlight p-4 rounded-xl border border-border">
-              <label className="text-xs text-muted font-bold uppercase tracking-wider mb-2 block">Table Number or Code (Required)</label>
-              <input
-                ref={tableInputRef}
-                type="text"
-                value={manualTableRef}
-                onChange={(e) => {
-                  setManualTableRef(e.target.value);
-                  if (e.target.value.trim()) setTableError(false);
-                }}
-                placeholder="e.g. 12 or TBL-ABCD"
-                className={`w-full bg-background border p-3 rounded-lg text-foreground font-bold text-lg outline-none transition-colors ${tableError ? 'border-red-500 animate-pulse' : 'border-border focus:border-secondary-500'}`}
-              />
-              {tableError && (
-                <p className="text-red-400 text-xs mt-2 font-bold animate-pulse">Please enter your table number or code to proceed.</p>
-              )}
-            </div>
-
-            <div className="space-y-3 mb-8">
-              {cart.map((line, idx) => (
-                <div key={idx} className="flex justify-between items-center bg-surface-highlight p-3 rounded-xl border border-border">
-                  <div className="flex items-center gap-3">
-                    <div className="flex items-center gap-1 bg-background rounded-lg p-1 border border-border">
-                      <button onClick={() => removeFromCart(line.item.id)} aria-label={`Remove one ${line.item.name}`} className="w-8 h-8 flex items-center justify-center text-muted hover:text-foreground font-bold active:scale-90 transition">-</button>
-                      <span className="font-bold w-6 text-center text-sm text-foreground">{line.quantity}</span>
-                      <button onClick={() => addToCart(line.item)} aria-label={`Add one more ${line.item.name}`} className="w-8 h-8 flex items-center justify-center text-foreground font-bold active:scale-90 transition">+</button>
-                    </div>
-                    <div className="min-w-0 flex-1">
-                      <div className="font-bold text-sm truncate pr-2 text-foreground">{line.item.name}</div>
-                      <div className="text-xs text-muted">€{line.item.price.toFixed(2)}</div>
-                    </div>
-                  </div>
-                  <div className="font-bold text-foreground">€{(line.item.price * line.quantity).toFixed(2)}</div>
-                </div>
-              ))}
-            </div>
-
-            <div className="border-t border-border pt-4 mb-6 space-y-2">
-              <div className="flex justify-between text-muted text-sm">
-                <span>Subtotal</span>
-                <span>€{totalAmount.toFixed(2)}</span>
-              </div>
-              <div className="flex justify-between text-2xl font-bold text-foreground">
-                <span>Total</span>
-                <span>€{totalAmount.toFixed(2)}</span>
-              </div>
-            </div>
-
-            <h3 className="font-bold text-muted text-xs uppercase tracking-wider mb-3">Confirm & Pay</h3>
-            <div className="grid grid-cols-2 gap-3 pb-6">
-              <button
-                onClick={() => validateAndProceed('cash')}
-                className={`py-4 rounded-xl border border-border font-bold transition flex items-center justify-center gap-2 bg-surface-highlight text-muted hover:bg-black/10 active:scale-95 ${!manualTableRef.trim() ? 'opacity-70' : ''}`}
-              >
-                💶 Cash
-              </button>
-              <button
-                onClick={() => validateAndProceed('digital')}
-                disabled={!paymentProvider}
-                className={`py-4 rounded-xl font-bold shadow-lg transition flex items-center justify-center gap-2 ${paymentProvider ? paymentProvider.color + ' text-white' : 'bg-gray-500/20 text-gray-500 cursor-not-allowed'} active:scale-95 ${!manualTableRef.trim() ? 'opacity-70' : ''}`}
-              >
-                {paymentProvider ? <>{paymentProvider.icon} {paymentProvider.name}</> : 'No Digital Pay'}
-              </button>
-            </div>
+        {/* Order Summary */}
+        <div className="border-t border-border pt-4 mb-6 space-y-2">
+          <div className="flex justify-between text-muted text-sm">
+            <span>Subtotal</span>
+            <span aria-label={`Subtotal: €${totalAmount.toFixed(2)}`}>€{totalAmount.toFixed(2)}</span>
+          </div>
+          <div className="flex justify-between text-2xl font-bold text-foreground">
+            <span>Total</span>
+            <span aria-label={`Total: €${totalAmount.toFixed(2)}`}>€{totalAmount.toFixed(2)}</span>
           </div>
         </div>
-      )}
+
+        {/* Payment Buttons */}
+        <div>
+          <h3 className="font-bold text-muted text-xs uppercase tracking-wider mb-3">Confirm & Pay</h3>
+          <div className="grid grid-cols-2 gap-3 pb-6">
+            <button
+              onClick={() => validateAndProceed('cash')}
+              disabled={!manualTableRef.trim()}
+              className={`min-h-[48px] py-4 rounded-xl border border-border font-bold transition flex items-center justify-center gap-2 bg-surface-highlight text-muted hover:bg-black/10 active:scale-95 touch-target ${
+                !manualTableRef.trim() ? 'opacity-70 cursor-not-allowed' : ''
+              }`}
+              aria-label="Pay with cash"
+            >
+              💶 Cash
+            </button>
+            <button
+              onClick={() => validateAndProceed('digital')}
+              disabled={!paymentProvider || !manualTableRef.trim()}
+              className={`min-h-[48px] py-4 rounded-xl font-bold shadow-lg transition flex items-center justify-center gap-2 touch-target ${
+                paymentProvider && manualTableRef.trim()
+                  ? `${paymentProvider.color} text-white active:scale-95`
+                  : 'bg-gray-500/20 text-gray-500 cursor-not-allowed'
+              }`}
+              aria-label={paymentProvider ? `Pay with ${paymentProvider.name}` : 'Digital payment not available'}
+            >
+              {paymentProvider ? (
+                <>
+                  {paymentProvider.icon} {paymentProvider.name}
+                </>
+              ) : (
+                'No Digital Pay'
+              )}
+            </button>
+          </div>
+        </div>
+      </BottomSheet>
     </div>
   );
 };

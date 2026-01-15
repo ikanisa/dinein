@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { HashRouter as Router, Routes, Route, useNavigate, useLocation } from 'react-router-dom';
+import { HashRouter as Router, Routes, Route, useNavigate, useLocation, Navigate } from 'react-router-dom';
 import { AnimatePresence, motion } from 'framer-motion';
 import { Toaster } from 'react-hot-toast';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
@@ -9,10 +9,15 @@ import { lazy, Suspense } from 'react';
 const ClientMenu = lazy(() => import('./pages/ClientMenu'));
 const SettingsPage = lazy(() => import('./pages/SettingsPage'));
 const ClientOrderStatus = lazy(() => import('./pages/ClientOrderStatus'));
-const ClientQRScanner = lazy(() => import('./pages/ClientQRScanner'));
+// ClientQRScanner removed - QR codes should link directly to menu
+// ClientProfile removed - functionality merged into SettingsPage
+// DeveloperSwitchboard removed - dev-only route
 const VendorLogin = lazy(() => import('./pages/VendorLogin'));
 const VendorDashboard = lazy(() => import('./pages/VendorDashboard'));
-const DeveloperSwitchboard = lazy(() => import('./pages/DeveloperSwitchboard'));
+const LiveDashboard = lazy(() => import('./pages/vendor/LiveDashboard'));
+const MenuManagement = lazy(() => import('./pages/vendor/MenuManagement'));
+const HistoryAnalytics = lazy(() => import('./pages/vendor/HistoryAnalytics'));
+const VendorSettings = lazy(() => import('./pages/vendor/VendorSettings'));
 const AdminDashboard = lazy(() => import('./pages/AdminDashboard'));
 const AdminUsers = lazy(() => import('./pages/AdminUsers'));
 const AdminLogin = lazy(() => import('./pages/AdminLogin'));
@@ -291,14 +296,15 @@ const AnimatedRoutes = () => {
       >
         <Suspense fallback={<SuspenseFallback />}>
           <Routes location={location}>
-            {/* Public Client Routes */}
+            {/* Public Client Routes - Simplified to 3 core routes */}
             <Route path="/" element={<RootRedirect />} />
             <Route path="/settings" element={<SettingsPage />} />
             <Route path="/order/:id" element={<ClientOrderStatus />} />
-            <Route path="/scan" element={<ClientQRScanner />} />
+            {/* QR codes should link directly to /v/:venueId/t/:tableCode */}
             <Route path="/v/:venueId" element={<ClientMenu />} />
             <Route path="/v/:venueId/t/:tableCode" element={<ClientMenu />} />
             {/* Legacy route redirects */}
+            <Route path="/scan" element={<RootRedirect />} />
             <Route path="/profile" element={<RootRedirect />} />
             <Route path="/menu/:venueId" element={<ClientMenu />} />
             <Route path="/menu/:venueId/t/:tableCode" element={<ClientMenu />} />
@@ -306,10 +312,42 @@ const AnimatedRoutes = () => {
             {/* Vendor Routes (Private) */}
             <Route path="/vendor/login" element={<VendorLogin />} />
             <Route
+              path="/vendor/live"
+              element={
+                <RequireAuth requiredRole="vendor">
+                  <LiveDashboard />
+                </RequireAuth>
+              }
+            />
+            <Route
+              path="/vendor/menu"
+              element={
+                <RequireAuth requiredRole="vendor">
+                  <MenuManagement />
+                </RequireAuth>
+              }
+            />
+            <Route
+              path="/vendor/history"
+              element={
+                <RequireAuth requiredRole="vendor">
+                  <HistoryAnalytics />
+                </RequireAuth>
+              }
+            />
+            <Route
+              path="/vendor/settings"
+              element={
+                <RequireAuth requiredRole="vendor">
+                  <VendorSettings />
+                </RequireAuth>
+              }
+            />
+            <Route
               path="/vendor/dashboard"
               element={
                 <RequireAuth requiredRole="vendor">
-                  <VendorDashboard />
+                  <Navigate to="/vendor/live" replace />
                 </RequireAuth>
               }
             />
@@ -377,8 +415,7 @@ const AnimatedRoutes = () => {
             <Route path="/admin-system" element={<RequireAuth requiredRole="admin"><AdminSystem /></RequireAuth>} />
             <Route path="/admin-users" element={<RequireAuth requiredRole="admin"><AdminUsers /></RequireAuth>} />
 
-            {/* Dev */}
-            <Route path="/dev" element={<DeveloperSwitchboard />} />
+            {/* Dev route removed - DeveloperSwitchboard deleted */}
           </Routes>
         </Suspense>
       </motion.div>

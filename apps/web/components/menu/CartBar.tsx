@@ -25,7 +25,7 @@ export const CartBar: React.FC<CartBarProps> = ({
         <div className="flex items-center justify-center p-3">
           <button
             onClick={onToggleFavorites}
-            className={`flex items-center gap-2 px-4 py-2 rounded-full font-medium text-sm transition-all ${
+            className={`min-h-[48px] flex items-center gap-2 px-4 py-2 rounded-full font-medium text-sm transition-all ${
               showFavoritesOnly
                 ? 'bg-primary-500 text-white shadow-lg shadow-primary-500/30'
                 : 'bg-surface-highlight text-muted hover:bg-black/10'
@@ -47,7 +47,7 @@ export const CartBar: React.FC<CartBarProps> = ({
           {/* Favorites Filter Button */}
           <button
             onClick={onToggleFavorites}
-            className={`flex items-center gap-1.5 px-3 py-2 rounded-xl font-medium text-xs transition-all flex-shrink-0 ${
+            className={`min-w-[48px] min-h-[48px] flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl font-medium text-xs transition-all flex-shrink-0 ${
               showFavoritesOnly
                 ? 'bg-primary-500/20 text-primary-600'
                 : 'bg-surface-highlight text-muted hover:bg-black/10'
@@ -61,9 +61,10 @@ export const CartBar: React.FC<CartBarProps> = ({
           </button>
 
           {/* Cart Summary */}
-          <div 
+          <button
             onClick={onReviewCart}
-            className="flex-1 flex items-center justify-between cursor-pointer active:scale-95 transition-transform"
+            className="flex-1 flex items-center justify-between cursor-pointer active:scale-95 transition-transform min-h-[48px] touch-target"
+            aria-label={`Review order with ${itemCount} item${itemCount !== 1 ? 's' : ''}, total €${total.toFixed(2)}`}
           >
             <div className="flex items-center gap-3">
               <div className="bg-foreground text-background font-bold w-10 h-10 rounded-full flex items-center justify-center shadow-lg">
@@ -78,7 +79,7 @@ export const CartBar: React.FC<CartBarProps> = ({
               <span>Review Order</span>
               <span className="text-xl">→</span>
             </div>
-          </div>
+          </button>
         </div>
       </GlassCard>
     </div>

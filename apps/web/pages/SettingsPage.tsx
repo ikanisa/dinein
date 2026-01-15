@@ -8,6 +8,17 @@ import { User, Order, OrderStatus } from '../types';
 import { useTheme } from '../context/ThemeContext';
 import { useCart } from '../context/CartContext';
 import { MenuItem } from '../types';
+import { useLanguage } from '../hooks/useLanguage';
+import {
+  isPushNotificationSupported,
+  requestNotificationPermission,
+  registerPushSubscription,
+  unregisterPushSubscription,
+  getNotificationPermission,
+  savePushSubscriptionToBackend,
+  removePushSubscriptionFromBackend,
+} from '../services/pushNotificationService';
+import toast from 'react-hot-toast';
 
 const SettingsPage = () => {
   const [user, setUser] = useState<User | null>(null);
@@ -16,6 +27,7 @@ const SettingsPage = () => {
   const navigate = useNavigate();
   const { theme, toggleTheme } = useTheme();
   const { favorites, removeFavorite } = useCart();
+  const { t, currentLanguage, changeLanguage } = useLanguage();
 
   useEffect(() => {
     const loadData = async () => {
@@ -47,10 +59,51 @@ const SettingsPage = () => {
   }, []);
 
   const toggleNotify = async () => {
-    if (user) {
-      const updated = await updateMyProfile({ notificationsEnabled: !user.notificationsEnabled });
-      setUser(updated);
+    if (!user) return;
+
+    const newState = !user.notificationsEnabled;
+
+    // If enabling, request permission and register
+    if (newState) {
+      if (!isPushNotificationSupported()) {
+        toast.error(t('notifications.permissionDenied'));
+        return;
+      }
+
+      const permission = await requestNotificationPermission();
+      
+      if (permission !== 'granted') {
+        toast.error(t('notifications.permissionDenied'));
+        return;
+      }
+
+      // Register push subscription
+      const subscription = await registerPushSubscription();
+      
+      if (subscription) {
+        // Save subscription to backend (optional - implement your backend endpoint)
+        // await savePushSubscriptionToBackend(subscription, user.id);
+        toast.success(t('notifications.permissionGranted'));
+      } else {
+        toast.error(t('notifications.permissionDenied'));
+        return;
+      }
+    } else {
+      // If disabling, unregister subscription
+      const subscription = await unregisterPushSubscription();
+      if (subscription) {
+        // Remove from backend (optional)
+        // const registration = await navigator.serviceWorker.ready;
+        // const sub = await registration.pushManager.getSubscription();
+        // if (sub) {
+        //   await removePushSubscriptionFromBackend(sub.endpoint);
+        // }
+      }
     }
+
+    // Update user profile
+    const updated = await updateMyProfile({ notificationsEnabled: newState });
+    setUser(updated);
   };
 
   const updateName = async (name: string) => {
@@ -96,7 +149,7 @@ const SettingsPage = () => {
           >
             ←
           </button>
-          <h1 className="text-2xl font-bold text-foreground">Settings</h1>
+          <h1 className="text-2xl font-bold text-foreground">{t('settings.title')}</h1>
         </div>
       </div>
 
@@ -107,7 +160,7 @@ const SettingsPage = () => {
             {user.name ? user.name.charAt(0).toUpperCase() : '?'}
           </div>
           <div className="flex-1">
-            <label className="text-xs text-muted block mb-1">Display Name</label>
+            <label className="text-xs text-muted block mb-1">{t('settings.displayName')}</label>
             <input
               type="text"
               value={user.name || ''}
@@ -121,10 +174,10 @@ const SettingsPage = () => {
 
         {/* Order History Section */}
         <section>
-          <h2 className="text-lg font-bold mb-4 text-foreground">ORDER HISTORY</h2>
+          <h2 className="text-lg font-bold mb-4 text-foreground">{t('settings.orderHistory').toUpperCase()}</h2>
           {orderHistory.length === 0 ? (
             <GlassCard className="p-6 text-center">
-              <p className="text-muted text-sm">No orders yet. Start ordering to see your history here.</p>
+              <p className="text-muted text-sm">{t('settings.noOrders')}</p>
             </GlassCard>
           ) : (
             <div className="space-y-3">
@@ -144,7 +197,7 @@ const SettingsPage = () => {
                           ? 'bg-red-500/20 text-red-600'
                           : 'bg-yellow-500/20 text-yellow-600'
                       }`}>
-                        {order.status}
+                        {t(`order.${order.status.toLowerCase()}`)}
                       </span>
                     </div>
                     <div className="text-xs text-muted">{formatDate(order.timestamp)}</div>
@@ -161,34 +214,35 @@ const SettingsPage = () => {
 
         {/* Preferences Section */}
         <section>
-          <h2 className="text-lg font-bold mb-4 text-foreground">PREFERENCES</h2>
+          <h2 className="text-lg font-bold mb-4 text-foreground">{t('settings.preferences').toUpperCase()}</h2>
           <GlassCard className="space-y-4">
             <div className="flex justify-between items-center">
               <div>
-                <span className="block font-medium text-foreground">🌱 Dietary Restrictions</span>
-                <span className="text-xs text-muted">Filter menu items by dietary needs</span>
+                <span className="block font-medium text-foreground">🌱 {t('settings.dietaryRestrictions')}</span>
+                <span className="text-xs text-muted">{t('settings.filterMenuItems')}</span>
               </div>
               <button
                 onClick={() => {/* TODO: Implement dietary filters modal */}}
                 className="text-sm text-primary-600 font-medium"
               >
-                Edit
+                {t('common.edit')}
               </button>
             </div>
             
             <div className="border-t border-border pt-4 flex justify-between items-center">
-              <span className="font-medium text-foreground">🌐 Language</span>
+              <span className="font-medium text-foreground">🌐 {t('settings.language')}</span>
               <select
-                defaultValue="en"
+                value={currentLanguage}
+                onChange={(e) => changeLanguage(e.target.value as 'en' | 'mt')}
                 className="bg-surface-highlight border border-border rounded-lg px-3 py-2 text-sm text-foreground focus:outline-none focus:border-secondary-500"
               >
                 <option value="en">English</option>
-                <option value="mt">Maltese</option>
+                <option value="mt">Malti</option>
               </select>
             </div>
 
             <div className="border-t border-border pt-4 flex justify-between items-center">
-              <span className="font-medium text-foreground">{theme === 'dark' ? '🌑' : '☀️'} Dark Mode</span>
+              <span className="font-medium text-foreground">{theme === 'dark' ? '🌑' : '☀️'} {t('settings.darkMode')}</span>
               <button
                 onClick={toggleTheme}
                 className={`w-12 h-6 rounded-full p-1 transition-colors ${theme === 'dark' ? 'bg-secondary-500' : 'bg-gray-400'}`}
@@ -199,13 +253,28 @@ const SettingsPage = () => {
             </div>
 
             <div className="border-t border-border pt-4 flex justify-between items-center">
-              <span className="font-medium text-foreground">🔔 Push Notifications</span>
+              <div className="flex-1">
+                <span className="block font-medium text-foreground">🔔 {t('settings.pushNotifications')}</span>
+                {!isPushNotificationSupported() && (
+                  <span className="text-xs text-muted">{t('notifications.permissionDenied')}</span>
+                )}
+                {isPushNotificationSupported() && getNotificationPermission() === 'denied' && (
+                  <span className="text-xs text-muted">{t('notifications.permissionDenied')}</span>
+                )}
+              </div>
               <button
                 onClick={toggleNotify}
-                className={`w-12 h-6 rounded-full p-1 transition-colors ${user.notificationsEnabled ? 'bg-green-500' : 'bg-gray-600'}`}
-                aria-label="Toggle notifications"
+                disabled={!isPushNotificationSupported()}
+                className={`w-12 h-6 rounded-full p-1 transition-colors ${
+                  user.notificationsEnabled && isPushNotificationSupported()
+                    ? 'bg-green-500'
+                    : 'bg-gray-600'
+                } disabled:opacity-50 disabled:cursor-not-allowed`}
+                aria-label={t('settings.pushNotifications')}
               >
-                <div className={`w-4 h-4 rounded-full bg-white transition-transform ${user.notificationsEnabled ? 'translate-x-6' : ''}`} />
+                <div className={`w-4 h-4 rounded-full bg-white transition-transform ${
+                  user.notificationsEnabled && isPushNotificationSupported() ? 'translate-x-6' : ''
+                }`} />
               </button>
             </div>
           </GlassCard>
@@ -213,10 +282,10 @@ const SettingsPage = () => {
 
         {/* Saved Favorites Section */}
         <section>
-          <h2 className="text-lg font-bold mb-4 text-foreground">SAVED FAVORITES ({favorites.length})</h2>
+          <h2 className="text-lg font-bold mb-4 text-foreground">{t('settings.savedFavorites').toUpperCase()} ({favorites.length})</h2>
           {favorites.length === 0 ? (
             <GlassCard className="p-6 text-center">
-              <p className="text-muted text-sm">No favorites yet. Tap the star icon on menu items to save them.</p>
+              <p className="text-muted text-sm">{t('settings.noFavorites')}</p>
             </GlassCard>
           ) : (
             <div className="space-y-2">
@@ -246,22 +315,22 @@ const SettingsPage = () => {
 
         {/* About Section */}
         <section>
-          <h2 className="text-lg font-bold mb-4 text-foreground">ABOUT</h2>
+          <h2 className="text-lg font-bold mb-4 text-foreground">{t('settings.about').toUpperCase()}</h2>
           <GlassCard className="space-y-3">
             <button
               onClick={() => {/* TODO: Open Terms of Service */}}
               className="w-full text-left py-3 border-b border-border text-foreground hover:text-primary-600 transition-colors"
             >
-              Terms of Service
+              {t('settings.termsOfService')}
             </button>
             <button
               onClick={() => {/* TODO: Open Privacy Policy */}}
               className="w-full text-left py-3 border-b border-border text-foreground hover:text-primary-600 transition-colors"
             >
-              Privacy Policy
+              {t('settings.privacyPolicy')}
             </button>
             <div className="pt-3 text-xs text-muted text-center">
-              App Version 2.0
+              {t('settings.appVersion')} 2.0
             </div>
           </GlassCard>
         </section>

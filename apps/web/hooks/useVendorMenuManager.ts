@@ -2,7 +2,8 @@ import { useCallback, useMemo, useState } from 'react';
 import { toast } from 'react-hot-toast';
 import { MenuItem, Venue } from '../types';
 import { updateVenueMenu, getVenueById, createMenuItem } from '../services/databaseService';
-import { parseMenuFromFile, generateMenuItemImagePreview, generateMenuItemImage } from '../services/geminiService';
+// Gemini AI removed from client - image generation disabled
+// Menu parsing and image generation should be done via admin Edge Functions
 
 interface UseVendorMenuManagerArgs {
   venue: Venue | null;
@@ -119,26 +120,11 @@ export const useVendorMenuManager = ({ venue, setVenue }: UseVendorMenuManagerAr
   );
 
   const handleAiImageAction = useCallback(async () => {
-    if (!aiImagePrompt) return;
-    setAiImageLoading(true);
-
-    try {
-      const serviceMethod =
-        aiImageMode === 'generate' || !editingItem.imageUrl
-          ? generateMenuItemImage(editingItem.name || 'Food', aiImagePrompt, '', '')
-          : generateMenuItemImage(editingItem.name || 'Food', aiImagePrompt, '', '');
-
-      const url = await serviceMethod;
-      if (url) setEditingItem({ ...editingItem, imageUrl: url });
-
-      toast.success('Image generated!');
-    } catch (e) {
-      toast.error('AI processing failed. Check quota.');
-    }
-
+    // Gemini AI removed from client - image generation disabled
+    toast.error('AI image generation is no longer available in the client. Please use admin tools or upload images manually.');
     setAiImageLoading(false);
     setAiImagePrompt('');
-  }, [aiImageMode, aiImagePrompt, editingItem]);
+  }, []);
 
   const handleFileUpload = useCallback(async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
@@ -149,53 +135,19 @@ export const useVendorMenuManager = ({ venue, setVenue }: UseVendorMenuManagerAr
       return;
     }
 
-    setIsProcessingMenu(true);
-    const reader = new FileReader();
-    reader.onloadend = async () => {
-      const base64Full = reader.result as string;
-      const base64Data = base64Full.split(',')[1];
-      const extracted = await parseMenuFromFile(base64Data, file.type);
-
-      const mappedItems: MenuItem[] = extracted.map((ex: any, idx: number) => ({
-        id: `imported-${Date.now()}-${idx}`,
-        name: ex.name,
-        description: ex.description || '',
-        price: ex.price,
-        category: ex.category || 'Mains',
-        available: true,
-        options: [],
-        tags: [],
-      }));
-
-      setParsedItems(mappedItems);
-      setIsProcessingMenu(false);
-      toast.success(`Extracted ${mappedItems.length} items`);
-
+    // Gemini AI removed from client - menu parsing disabled
+    toast.error('Menu parsing from images is no longer available in the client. Please use admin tools or enter menu items manually.');
+    setIsProcessingMenu(false);
+    if (event.currentTarget) {
       event.currentTarget.value = '';
-    };
-
-    reader.readAsDataURL(file);
+    }
   }, []);
 
   const generateImagesForImport = useCallback(async () => {
-    if (!parsedItems || !venue) return;
-    setGeneratingImages(true);
-
-    const updatedItems = [...parsedItems];
-    for (let i = 0; i < updatedItems.length; i++) {
-      if (!updatedItems[i].imageUrl) {
-        const url = await generateMenuItemImagePreview(
-          updatedItems[i].name,
-          updatedItems[i].description || ''
-        );
-        if (url) updatedItems[i].imageUrl = url;
-        setParsedItems([...updatedItems]);
-      }
-    }
-
+    // Gemini AI removed from client - image generation disabled
+    toast.error('AI image generation is no longer available in the client. Please upload images manually.');
     setGeneratingImages(false);
-    toast.success('Images generated');
-  }, [parsedItems, venue]);
+  }, []);
 
   const [isImporting, setIsImporting] = useState(false);
 

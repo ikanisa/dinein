@@ -6,9 +6,10 @@ import clsx from 'clsx';
 interface SkeletonProps {
   className?: string;
   variant?: 'text' | 'circular' | 'rectangular';
+  style?: React.CSSProperties;
 }
 
-export const Skeleton = ({ className = "", variant = 'text' }: SkeletonProps) => {
+export const Skeleton = ({ className = "", variant = 'text', style }: SkeletonProps) => {
   const variantClasses = {
     text: 'rounded',
     circular: 'rounded-full',
@@ -22,6 +23,8 @@ export const Skeleton = ({ className = "", variant = 'text' }: SkeletonProps) =>
         variantClasses[variant],
         className
       )}
+      style={style}
+      aria-hidden="true"
     />
   );
 };
@@ -83,10 +86,14 @@ export const VenueListSkeleton = () => (
 );
 
 export const MenuListSkeleton = () => (
-  <div className="space-y-4">
+  <div className="space-y-4" role="status" aria-label="Loading menu items">
     {[1, 2, 3].map(i => (
       <GlassCard key={i} className="flex gap-4 p-3 bg-surface border-0 shadow-sm">
-        <Skeleton className="w-28 h-28 rounded-lg flex-shrink-0" />
+        <Skeleton 
+          className="w-28 h-28 rounded-lg flex-shrink-0" 
+          variant="rectangular"
+          style={{ aspectRatio: '1 / 1' }}
+        />
         <div className="flex-1 space-y-3 py-1 flex flex-col justify-between">
           <div>
             <Skeleton className="w-2/3 h-5 mb-2" />
@@ -94,7 +101,7 @@ export const MenuListSkeleton = () => (
           </div>
           <div className="flex justify-between items-end">
             <Skeleton className="w-12 h-6" />
-            <Skeleton className="w-8 h-8 rounded-full" />
+            <Skeleton className="w-8 h-8 rounded-full" variant="circular" />
           </div>
         </div>
       </GlassCard>

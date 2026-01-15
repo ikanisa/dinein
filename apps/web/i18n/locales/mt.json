@@ -1,0 +1,87 @@
+{
+  "common": {
+    "loading": "Qed ittagħbija...",
+    "error": "Żball",
+    "success": "Suċċess",
+    "cancel": "Ikkanċella",
+    "save": "Issejvja",
+    "delete": "Ħassar",
+    "edit": "Editja",
+    "close": "Agħlaq",
+    "back": "Lura",
+    "next": "Li jmiss",
+    "previous": "Preċedenti",
+    "confirm": "Ikkonferma",
+    "yes": "Iva",
+    "no": "Le"
+  },
+  "menu": {
+    "title": "Menu",
+    "categories": "Kategoriji",
+    "addToCart": "Żid fil-Basket",
+    "removeFromCart": "Neħħi mill-Basket",
+    "itemAdded": "Oġġett miżjud fil-basket",
+    "itemRemoved": "Oġġett imneħħi mill-basket",
+    "cartEmpty": "Il-basket tiegħek vojt",
+    "viewCart": "Ara l-Basket",
+    "checkout": "Ikkontrolla",
+    "total": "Total",
+    "items": "oġġetti",
+    "item": "oġġett"
+  },
+  "cart": {
+    "title": "Basket",
+    "empty": "Il-basket tiegħek vojt",
+    "subtotal": "Sottototal",
+    "total": "Total",
+    "placeOrder": "Poġġi Ordni",
+    "clearCart": "Naddaf il-Basket",
+    "continueShopping": "Kompli tixtri"
+  },
+  "order": {
+    "title": "Ordni",
+    "status": "Status",
+    "pending": "Pendenti",
+    "confirmed": "Ikkonfermat",
+    "preparing": "Qed jitħejja",
+    "ready": "Lest",
+    "served": "Imressaq",
+    "cancelled": "Ikkanċellat",
+    "orderCode": "Kodiċi tal-Ordni",
+    "placedAt": "Pożizzjonat fi",
+    "estimatedTime": "Ħin stimat",
+    "minutes": "minuti"
+  },
+  "settings": {
+    "title": "Settings",
+    "profile": "Profil",
+    "displayName": "Isem ta' Wiri",
+    "orderHistory": "Storja tal-Ordnijiet",
+    "preferences": "Preferenzi",
+    "dietaryRestrictions": "Restrizzjonijiet Dietetiċi",
+    "filterMenuItems": "Iffiltra oġġetti tal-menu skont il-ħtiġijiet dietetiċi",
+    "language": "Lingwa",
+    "darkMode": "Modalità Skura",
+    "pushNotifications": "Notifiki Push",
+    "savedFavorites": "Favoriti Salvati",
+    "noFavorites": "L-ebda favorit s'issa. Agħfas l-ikona tal-istilla fuq oġġetti tal-menu biex issejvjahom.",
+    "noOrders": "L-ebda ordni s'issa. Ibda tordna biex tara l-istorja tiegħek hawn.",
+    "about": "Dwar",
+    "termsOfService": "Termini tas-Servizz",
+    "privacyPolicy": "Politika tal-Privatezza",
+    "appVersion": "Verżjoni tal-App"
+  },
+  "notifications": {
+    "permissionRequest": "Attiva notifiki biex tirċievi aġġornamenti tal-ordni",
+    "permissionGranted": "Notifiki attivati",
+    "permissionDenied": "Notifiki diżattivati",
+    "orderUpdate": "Aġġornament tal-Ordni",
+    "orderReady": "L-ordni tiegħek hija lesta!",
+    "orderConfirmed": "L-ordni tiegħek ġiet ikkonfermata"
+  },
+  "errors": {
+    "networkError": "Żball tan-netwerk. Jekk jogħġbok iċċekkja l-konnessjoni tiegħek.",
+    "genericError": "Xi ħaġa marret żbaljata. Jekk jogħġbok erġa' pprova.",
+    "offline": "Int offline bħalissa. L-ordnijiet se jisinkronizzaw meta tkun online."
+  }
+}

@@ -110,7 +110,7 @@ const ClientOrderStatus = () => {
   }
 
   return (
-    <div className="min-h-screen bg-background p-6 pb-24 pt-safe-top">
+    <main className="min-h-screen bg-background p-6 pb-24 pt-safe-top" role="main" aria-label="Order status">
       <div className="max-w-md mx-auto space-y-6">
         {/* Header */}
         <div className="flex items-center justify-between mb-6">

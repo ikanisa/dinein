@@ -96,6 +96,8 @@ export default defineConfig(({ mode }) => {
         },
         workbox: {
           globPatterns: ['**/*.{js,css,html,ico,png,svg,webp,avif}'],
+          navigateFallback: '/offline.html',
+          navigateFallbackAllowlist: [/^(?!\/__).*/],
           runtimeCaching: [
             // Menu data: Cache-first strategy (1 hour) - allows offline menu viewing
             {
@@ -204,8 +206,7 @@ export default defineConfig(({ mode }) => {
       }),
     ],
     define: {
-      'process.env.API_KEY': JSON.stringify(env.GEMINI_API_KEY),
-      'process.env.GEMINI_API_KEY': JSON.stringify(env.GEMINI_API_KEY),
+      // GEMINI_API_KEY removed - Gemini AI no longer used in client
       'process.env.VITE_GA_MEASUREMENT_ID': JSON.stringify(env.VITE_GA_MEASUREMENT_ID),
       'process.env.VITE_SUPABASE_URL': JSON.stringify(env.VITE_SUPABASE_URL),
       'process.env.VITE_SUPABASE_ANON_KEY': JSON.stringify(env.VITE_SUPABASE_ANON_KEY),

@@ -82,11 +82,14 @@ export const useVendorDashboardData = ({ tab }: UseVendorDashboardDataOptions): 
       if (tab === 'orders') {
         const o = await getOrdersForVenue(venueId);
         setOrders(o.sort((a, b) => b.timestamp - a.timestamp));
-      }
-      if (tab === 'tables') {
-        setTables(await getTablesForVenue(venueId));
-      }
-      if (tab === 'reservations') {
+        // Also load tables for orders tab (needed for order display)
+        const t = await getTablesForVenue(venueId);
+        setTables(t);
+      } else if (tab === 'tables' || tab === 'live') {
+        // Always load tables for live dashboard
+        const t = await getTablesForVenue(venueId);
+        setTables(t);
+      } else if (tab === 'reservations') {
         const r = await getReservationsForVenue(venueId);
         setReservations(r.sort((a, b) => new Date(b.datetime).getTime() - new Date(a.datetime).getTime()));
       }

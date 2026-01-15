@@ -5,9 +5,14 @@ export enum UserType {
 }
 
 export enum OrderStatus {
-  RECEIVED = 'RECEIVED',
-  SERVED = 'SERVED',
-  CANCELLED = 'CANCELLED'
+  NEW = 'NEW',
+  PREPARING = 'PREPARING',
+  READY = 'READY',
+  COMPLETED = 'COMPLETED',
+  CANCELLED = 'CANCELLED',
+  // Legacy statuses for backward compatibility
+  RECEIVED = 'RECEIVED', // Maps to NEW
+  SERVED = 'SERVED' // Maps to COMPLETED
 }
 
 export enum PaymentStatus {

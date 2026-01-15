@@ -1,6 +1,17 @@
 /**
  * Push Notification Service
  * Handles push notification registration and management
+ * 
+ * VAPID Keys Setup:
+ * 1. Generate VAPID keys using: npx web-push generate-vapid-keys
+ * 2. Set VITE_VAPID_PUBLIC_KEY in your .env file
+ * 3. Store the private key securely on your backend server
+ * 4. Use the private key to send push notifications from your backend
+ * 
+ * Backend Integration:
+ * - Save subscription data to your database when user enables notifications
+ * - Use web-push library on backend to send notifications
+ * - Example: web-push.sendNotification(subscription, JSON.stringify(payload), { vapidKeys })
  */
 
 const VAPID_PUBLIC_KEY = import.meta.env.VITE_VAPID_PUBLIC_KEY || '';
@@ -176,5 +187,51 @@ export function getNotificationPermission(): NotificationPermission {
     return 'denied';
   }
   return Notification.permission;
+}
+
+/**
+ * Save push subscription to backend
+ * Call this after registering a subscription to store it in your database
+ */
+export async function savePushSubscriptionToBackend(
+  subscription: PushSubscriptionData,
+  userId?: string
+): Promise<boolean> {
+  try {
+    // TODO: Replace with your actual backend endpoint
+    const response = await fetch('/api/push-subscriptions', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        subscription,
+        userId,
+      }),
+    });
+
+    return response.ok;
+  } catch (error) {
+    console.error('Error saving push subscription to backend:', error);
+    return false;
+  }
+}
+
+/**
+ * Remove push subscription from backend
+ */
+export async function removePushSubscriptionFromBackend(
+  endpoint: string
+): Promise<boolean> {
+  try {
+    const response = await fetch(`/api/push-subscriptions/${encodeURIComponent(endpoint)}`, {
+      method: 'DELETE',
+    });
+
+    return response.ok;
+  } catch (error) {
+    console.error('Error removing push subscription from backend:', error);
+    return false;
+  }
 }
 

@@ -132,11 +132,15 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
   useEffect(() => {
     if (user) {
-      errorTracker.setUser(user.id, user.email ?? undefined);
+      errorTracker.setUser(user.id, user.email ?? undefined, {
+        role,
+        vendorId,
+        vendorRole,
+      });
     } else {
       errorTracker.clearUser();
     }
-  }, [user]);
+  }, [user, role, vendorId, vendorRole]);
 
   const signInAnonymously = async () => {
     const { data, error } = await supabase.auth.signInAnonymously();

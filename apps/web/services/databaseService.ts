@@ -16,10 +16,25 @@ const handleSupabaseError = (error: any, context: string) => {
 // Maps SQL snake_case to App camelCase
 
 export const toOrderStatus = (value?: string | null): OrderStatus => {
-  const normalized = (value || '').toString().toUpperCase();
-  if (normalized === OrderStatus.SERVED) return OrderStatus.SERVED;
-  if (normalized === OrderStatus.CANCELLED) return OrderStatus.CANCELLED;
-  return OrderStatus.RECEIVED;
+  const normalized = (value || '').toString().toLowerCase();
+  // Map database values to enum
+  switch (normalized) {
+    case 'new':
+      return OrderStatus.NEW;
+    case 'preparing':
+      return OrderStatus.PREPARING;
+    case 'ready':
+      return OrderStatus.READY;
+    case 'completed':
+      return OrderStatus.COMPLETED;
+    case 'served': // Legacy: served maps to completed
+      return OrderStatus.COMPLETED;
+    case 'cancelled':
+      return OrderStatus.CANCELLED;
+    case 'received': // Legacy: received maps to new
+    default:
+      return OrderStatus.NEW;
+  }
 };
 
 export const toPaymentStatus = (value?: string | null): PaymentStatus => {
@@ -379,32 +394,9 @@ export const createMenuItem = async (vendorId: string, item: Omit<MenuItem, 'id'
 
   const createdItem = mapMenuItem(data);
 
-  // Generate and update image if not provided
-  if (!imageUrl && item.name && data.id) {
-    try {
-      const { generateMenuItemImage } = await import('./geminiService');
-      const generatedImageUrl = await generateMenuItemImage(
-        vendorId,
-        data.id,
-        item.name,
-        item.description || ''
-      );
-
-      if (generatedImageUrl) {
-        // Update the item with the generated image
-        const { error: updateError } = await supabase
-          .from('menu_items')
-          .update({ image_url: generatedImageUrl })
-          .eq('id', data.id);
-
-        if (!updateError) {
-          return { ...createdItem, imageUrl: generatedImageUrl };
-        }
-      }
-    } catch (e) {
-      console.warn('Failed to generate menu item image:', e);
-    }
-  }
+  // Gemini AI removed from client - image generation disabled
+  // Images must be provided manually or generated via admin Edge Functions
+  // Item created without automatic image generation
 
   return createdItem;
 };
@@ -509,11 +501,7 @@ export const createOrder = async (orderData: {
 
   // Helper to map database status to frontend enum
   const mapOrderStatus = (dbStatus: string): OrderStatus => {
-    const upper = dbStatus.toUpperCase();
-    if (upper === 'RECEIVED') return OrderStatus.RECEIVED;
-    if (upper === 'SERVED') return OrderStatus.SERVED;
-    if (upper === 'CANCELLED') return OrderStatus.CANCELLED;
-    return OrderStatus.RECEIVED; // default
+    return toOrderStatus(dbStatus);
   };
 
   const mapPaymentStatus = (dbStatus: string): PaymentStatus => {
@@ -616,10 +604,44 @@ export const getOrderById = async (orderId: string): Promise<Order | null> => {
 export const getOrdersForVenue = async (venueId: string): Promise<Order[]> => {
   const { data, error } = await supabase
     .from('orders')
-    .select('*, table:tables (table_number, label, public_code)')
-    .eq('vendor_id', venueId);
+    .select(`
+      *,
+      table:tables (table_number, label, public_code),
+      order_items (
+        id,
+        name_snapshot,
+        price_snapshot,
+        qty,
+        modifiers_json
+      )
+    `)
+    .eq('vendor_id', venueId)
+    .order('created_at', { ascending: false });
+  
   if (error) handleSupabaseError(error, 'getOrdersForVenue');
-  return (data || []).map(mapOrder);
+  
+  // Map orders and include order items
+  const orders = (data || []).map((row: any) => {
+    const order = mapOrder(row);
+    // Map order_items to order.items format
+    if (row.order_items && Array.isArray(row.order_items)) {
+      order.items = row.order_items.map((oi: any) => ({
+        item: {
+          id: oi.id || '',
+          name: oi.name_snapshot || '',
+          description: '',
+          price: parseFloat(oi.price_snapshot || 0),
+          category: '',
+          available: true,
+        },
+        quantity: oi.qty || 1,
+        selectedOptions: oi.modifiers_json ? (Array.isArray(oi.modifiers_json) ? oi.modifiers_json : []) : undefined,
+      }));
+    }
+    return order;
+  });
+  
+  return orders;
 };
 
 export const getAllOrders = async (): Promise<Order[]> => {
@@ -631,15 +653,24 @@ export const getAllOrders = async (): Promise<Order[]> => {
 }
 
 export const updateOrderStatus = async (orderId: string, status: OrderStatus): Promise<void> => {
-  // Only allow 'served' or 'cancelled' transitions (from 'received')
-  if (status !== OrderStatus.SERVED && status !== OrderStatus.CANCELLED) {
-    throw new Error(`Invalid status transition. Only 'served' or 'cancelled' allowed.`);
-  }
+  // Map enum values to database values
+  const statusMap: Record<OrderStatus, string> = {
+    [OrderStatus.NEW]: 'new',
+    [OrderStatus.PREPARING]: 'preparing',
+    [OrderStatus.READY]: 'ready',
+    [OrderStatus.COMPLETED]: 'completed',
+    [OrderStatus.CANCELLED]: 'cancelled',
+    // Legacy mappings
+    [OrderStatus.RECEIVED]: 'new',
+    [OrderStatus.SERVED]: 'completed'
+  };
+
+  const dbStatus = statusMap[status] || status.toLowerCase();
 
   const { error } = await supabase.functions.invoke('order_update_status', {
     body: {
       order_id: orderId,
-      status: status.toLowerCase()
+      status: dbStatus
     }
   });
 
