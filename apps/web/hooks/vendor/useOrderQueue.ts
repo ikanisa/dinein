@@ -20,6 +20,33 @@ interface UseOrderQueueReturn {
   refreshOrders: () => Promise<void>;
 }
 
+/**
+ * Generate a simple notification tone using Web Audio API
+ * Fallback if audio file is not available
+ */
+const generateNotificationTone = (): void => {
+  try {
+    const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
+    const oscillator = audioContext.createOscillator();
+    const gainNode = audioContext.createGain();
+
+    oscillator.connect(gainNode);
+    gainNode.connect(audioContext.destination);
+
+    // Create a pleasant two-tone chime
+    oscillator.frequency.setValueAtTime(800, audioContext.currentTime);
+    oscillator.frequency.setValueAtTime(1000, audioContext.currentTime + 0.1);
+
+    gainNode.gain.setValueAtTime(0.3, audioContext.currentTime);
+    gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.5);
+
+    oscillator.start(audioContext.currentTime);
+    oscillator.stop(audioContext.currentTime + 0.5);
+  } catch (e) {
+    console.warn('Web Audio API not available:', e);
+  }
+};
+
 const playNotificationSound = () => {
   // Check if sound alerts are enabled
   const soundAlertsEnabled = localStorage.getItem('vendor_sound_alerts') !== 'false';
@@ -32,18 +59,32 @@ const playNotificationSound = () => {
     return;
   }
 
+  // Try to play audio file first
   try {
     const audio = new Audio('/sounds/new-order.mp3');
     audio.volume = 0.7;
+    
+    // Check if file loaded (if 404, fallback to generated tone)
+    audio.addEventListener('error', (e) => {
+      console.warn('Audio file not found, using generated tone');
+      generateNotificationTone();
+      if (navigator.vibrate) {
+        navigator.vibrate([200, 100, 200]);
+      }
+    });
+
     audio.play().catch((e) => {
-      // Autoplay may be blocked, fallback to vibration
-      console.warn('Audio play failed, using vibration fallback:', e);
+      // Autoplay may be blocked, fallback to generated tone
+      console.warn('Audio play failed, using generated tone:', e);
+      generateNotificationTone();
       if (navigator.vibrate) {
         navigator.vibrate([200, 100, 200]);
       }
     });
   } catch (e) {
-    console.error('Sound notification error:', e);
+    // If Audio constructor fails, use generated tone
+    console.warn('Audio not available, using generated tone:', e);
+    generateNotificationTone();
     if (navigator.vibrate) {
       navigator.vibrate([200, 100, 200]);
     }
