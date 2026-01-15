@@ -3,7 +3,7 @@
  * 
  * These tests verify WCAG 2.1 AA compliance for critical components.
  */
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
 import { render, screen } from '@/src/test/utils';
 import { axe, toHaveNoViolations } from 'jest-axe';
 

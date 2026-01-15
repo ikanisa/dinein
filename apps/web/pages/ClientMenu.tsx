@@ -1,4 +1,4 @@
-import { useEffect, useState, useRef } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { GlassCard } from '../components/GlassCard';
 import { MenuListSkeleton } from '../components/Loading';

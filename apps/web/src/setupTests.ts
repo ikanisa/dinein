@@ -73,7 +73,7 @@ Object.defineProperty(navigator, 'serviceWorker', {
 });
 
 // Mock IntersectionObserver
-global.IntersectionObserver = jest.fn().mockImplementation((callback) => ({
+global.IntersectionObserver = jest.fn().mockImplementation((_callback) => ({
   observe: jest.fn(),
   unobserve: jest.fn(),
   disconnect: jest.fn(),

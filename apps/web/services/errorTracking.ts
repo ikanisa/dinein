@@ -138,14 +138,15 @@ class ErrorTracker {
   private async logError(error: Error, context?: ErrorContext) {
     try {
       // Optionally send to your backend for logging
-      const _errorLog = {
-        message: error.message,
-        stack: error.stack,
-        context,
-        timestamp: new Date().toISOString(),
-        userAgent: navigator.userAgent,
-        url: window.location.href,
-      };
+      // Uncomment and implement when backend logging is available
+      // const errorLog = {
+      //   message: error.message,
+      //   stack: error.stack,
+      //   context,
+      //   timestamp: new Date().toISOString(),
+      //   userAgent: navigator.userAgent,
+      //   url: window.location.href,
+      // };
 
       // Uncomment to send to your backend
       // await fetch('/api/log-error', {
@@ -153,6 +154,10 @@ class ErrorTracker {
       //   headers: { 'Content-Type': 'application/json' },
       //   body: JSON.stringify(errorLog),
       // });
+      
+      // Suppress unused parameter warnings
+      void error;
+      void context;
     } catch (e) {
       console.error('Failed to log error to backend:', e);
     }

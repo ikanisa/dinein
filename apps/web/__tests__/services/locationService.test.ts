@@ -51,7 +51,7 @@ const createGeolocationMock = () => {
             }
         ),
         watchPosition: vi.fn(
-            (success: PositionCallback, _error?: PositionErrorCallback, _options?: PositionOptions) => {
+            (success: PositionCallback, error?: PositionErrorCallback, _options?: PositionOptions) => {
                 const id = ++watchId;
                 watchCallbacks.set(id, { success, error });
                 return id;

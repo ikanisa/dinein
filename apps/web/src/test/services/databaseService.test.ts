@@ -11,7 +11,7 @@ afterAll(() => server.close());
 vi.mock('@/services/supabase', () => ({
     supabase: {
         from: (table: string) => ({
-            select: (query?: string) => ({
+            select: (_query?: string) => ({
                 eq: (column: string, value: string) =>
                     Promise.resolve({
                         data:

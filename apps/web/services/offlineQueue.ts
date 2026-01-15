@@ -17,7 +17,7 @@ export interface QueuedRequest {
 
 const QUEUE_KEY = 'offline_queue';
 const MAX_RETRIES = 3;
-const RETRY_DELAY = 5000; // 5 seconds
+// RETRY_DELAY constant removed - using exponential backoff instead
 
 /**
  * Add a request to the offline queue

@@ -8,12 +8,8 @@ import { supabase } from './supabase';
 
 const BUCKET_NAME = 'venue-images';
 
-interface ImageCacheEntry {
-  venueName: string;
-  imageUrl: string;
-  generatedAt: number; // timestamp
-  weekKey: string; // YYYY-WW format for weekly rotation
-}
+// Note: ImageCacheEntry interface removed as it's not currently used
+// Re-add if needed for type definitions in the future
 
 /**
  * Get current week key (YYYY-WW format)
