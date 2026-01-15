@@ -33,16 +33,22 @@
     "noFallthroughCasesInSwitch": true,
     "noImplicitReturns": true
   },
+  "include": [
+    "**/*.ts",
+    "**/*.tsx"
+  ],
   "exclude": [
     "supabase",
     "dist",
     "node_modules",
-    "**/__tests__/**/*",
-    "**/tests/**/*",
-    "**/src/test/**/*",
+    "**/__tests__",
+    "**/tests",
+    "**/src/test",
     "**/*.test.ts",
     "**/*.test.tsx",
     "**/*.spec.ts",
-    "**/*.spec.tsx"
+    "**/*.spec.tsx",
+    "vitest.config.ts",
+    "playwright.config.ts"
   ]
 }
