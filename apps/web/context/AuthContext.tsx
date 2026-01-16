@@ -91,23 +91,12 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   useEffect(() => {
     // Get initial session
     supabase.auth.getSession().then(async ({ data: { session } }) => {
-      if (!session?.user) {
-        // If no session, initialize anonymous auth for client routes
-        // This allows RLS policies to work correctly
-        try {
-          const { data: anonData } = await supabase.auth.signInAnonymously();
-          if (anonData.user) {
-            setUser(anonData.user);
-            await checkRole(anonData.user);
-          }
-        } catch (error) {
-          console.warn('Failed to initialize anonymous auth:', error);
-          // Continue without anonymous auth - some features may not work
-        }
-      } else {
+      if (session?.user) {
         setUser(session.user);
         await checkRole(session.user);
       }
+      // Skip anonymous auth - it's optional and may not be enabled
+      // Client features work without auth, only premium features require it
       setLoading(false);
     });
 

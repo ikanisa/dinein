@@ -164,11 +164,14 @@ const InstallPrompt = () => {
     } else {
       // Android/Desktop standard mechanism
       const handler = (e: any) => {
+        // Only intercept if we haven't dismissed the prompt before
+        if (localStorage.getItem('pwa-prompt-dismissed')) {
+          // Don't preventDefault - let browser handle it naturally
+          return;
+        }
         e.preventDefault();
         setDeferredPrompt(e);
-        if (!localStorage.getItem('pwa-prompt-dismissed')) {
-          setShow(true);
-        }
+        setShow(true);
       };
       window.addEventListener('beforeinstallprompt', handler);
       return () => window.removeEventListener('beforeinstallprompt', handler);
