@@ -8,136 +8,97 @@
 
 ---
 
-## 🚀 Mission
+## 📚 Documentation Hub
 
-To revolutionize the dining experience in Malta by providing a seamless, beautiful, and intelligent platform for:
-- **Diners**: Easy QR ordering, reservations, and payments.
-- **Staff**: Efficient order management and table service.
-- **Admins**: Comprehensive platform oversight.
+### 🚀 **App Development**
+- **[Getting Started](CONTRIBUTING.md#getting-started)**: Setup guide for new developers.
+- **[Contribution Guidelines](CONTRIBUTING.md)**: Git workflow, PR process, and coding standards.
+- **[API Integration](docs/API_INTEGRATION.md)**: Hooks, data fetching, and error handling.
+- **[Vendor Dashboard Guide](docs/VENDOR_DASHBOARD_GUIDE.md)**: Feature guide for the vendor portal.
+
+### 💾 **Backend & Data**
+- **[Database Schema](docs/DATABASE_SCHEMA.md)**: Tables, RLS policies, and relationship diagrams.
+- **[RLS Verification](docs/RLS_VERIFICATION.md)**: Security policies and audit results.
+- **[Supabase Setup](docs/deployment/supabase-setup.md)**: Local and remote backend configuration.
+
+### 🚢 **Deployment & Operations**
+- **[Deployment Status](docs/DEPLOYMENT_STATUS.md)**: Current build health and environment links.
+- **[Cloudflare Pages](docs/deployment/cloudflare-pages.md)**: Infrastructure configuration.
+- **[Troubleshooting](docs/deployment/troubleshooting.md)**: Common issues and fixes.
+
+### 🧪 **Quality Assurance**
+- **[Verification Report](docs/VERIFICATION_REPORT.md)**: Latest QA and audit findings.
+- **[PWA Audit Results](docs/PWA_AUDIT_RESULTS.md)**: Lighthouse scores and PWA checklist.
 
 ---
 
 ## 🛠 Tech Stack
 
-This project uses a modern, high-performance stack designed for scalability and user experience.
-
 - **Frontend**: [React](https://react.dev/) + [TypeScript](https://www.typescriptlang.org/)
-- **Build Tool**: [Vite](https://vitejs.dev/) (Monorepo support)
-- **Styling**: [Tailwind CSS](https://tailwindcss.com/) + Custom "Soft Liquid Glass" Design Tokens
-- **State Management**: [React Query](https://tanstack.com/query/latest) (Server State)
-- **Backend**: [Supabase](https://supabase.com/) (PostgreSQL, Auth, RLS, Realtime)
-- **Edge Logic**: [Supabase Edge Functions](https://supabase.com/docs/guides/functions) (Deno)
-- **Deployment**: [Cloudflare Pages](https://pages.cloudflare.com/)
+- **Build**: [Vite](https://vitejs.dev/)
+- **Style**: [Tailwind CSS](https://tailwindcss.com/) + "Soft Liquid Glass" Tokens
+- **Backend**: [Supabase](https://supabase.com/) (Postgres, Auth, Realtime)
+- **Host**: [Cloudflare Pages](https://pages.cloudflare.com/)
 
 ---
 
 ## 📂 Architecture
 
-The project follows a standard monorepo structure:
+```mermaid
+graph TD
+    User((User))
+    
+    subgraph "Cloudflare Pages"
+        PWA[React PWA]
+    end
 
-```
-/
-├── apps/
-│   └── web/            # Main PWA application (Client, Staff, Admin views)
-├── supabase/
-│   ├── functions/      # Edge functions (TypeScript/Deno)
-│   └── migrations/     # Database schema changes
-├── packages/           # Shared libraries (future use)
-└── docs/               # Project documentation
-```
+    subgraph "Supabase Platform"
+        Auth[GoTrue Auth]
+        DB[(PostgreSQL)]
+        Realtime[Realtime Engine]
+        Edge[Edge Functions]
+    end
 
-### Key Documentation
-- **[API Integration Guide](docs/API_INTEGRATION.md)**: Details on data fetching, hooks, and error handling.
-- **[Database Schema](docs/DATABASE_SCHEMA.md)**: Comprehensive guide to tables, RLS policies, and enums.
+    User -->|HTTPS| PWA
+    PWA -->|REST/WS| Supabase
+    PWA -->|Auth| Auth
+    PWA -->|Data| DB
+    PWA -->|Live Updates| Realtime
+    Edge -->|Logic| DB
+```
 
 ---
 
-## ✨ Key Features
-
-### 1. Role-Based Access Control (RBAC)
-Strict separation of concerns enforced via Database RLS and Application logic.
-- **Admin**: Full system access, vendor management, global settings.
-- **Staff**: Order management, menu updates, reservation handling for their specific vendor.
-- **Client**: Public access for ordering and reservations.
-
-### 2. "Soft Liquid Glass" UI/UX
-A custom design system featuring:
-- **Glassmorphism**: Translucent layers and blurs.
-- **Fluid Motion**: Smooth transitions and micro-interactions.
-- **Mobile-First**: Touch-optimized targets and gestures.
-
-### 3. AI-First Capabilities
-- **Smart Parsing**: Intelligent text processing for inputs.
-- **Assistive Features**: Planned AI integrations for menu recommendations and staff assistance.
-
----
-
-## 🚦 Getting Started
-
-### Prerequisites
-- Node.js (v18+)
-- npm (v9+)
-- Supabase CLI (if working on backend/migrations)
-
-### Installation
+## 🚦 Quick Start
 
 ```bash
-# Clone the repository
-git clone <repository-url>
-
-# Install dependencies
+# 1. Install
 npm install
-```
 
-### Local Development
-
-Run the web application locally:
-
-```bash
-# Starts the dev server for apps/web
+# 2. Start Frontend
 npm run dev
-```
 
-The app will be available at `http://localhost:5173`.
-
-### Backend Development
-
-If you are working on database changes or edge functions:
-
-```bash
-# Start local Supabase instance
+# 3. Start Backend (Optional)
 npx supabase start
-
-# Serve edge functions locally
-npx supabase functions serve
 ```
+
+For detailed instructions, see **[CONTRIBUTING.md](CONTRIBUTING.md)**.
 
 ---
 
 ## 📦 Building for Production
 
-To build the PWA for deployment:
-
 ```bash
 npm run build
 ```
 
-This acts as a standard command for `npm run build -w apps/web`.
-
 ---
 
-## 🧪 Testing & Verification
+## 🔒 Security
 
-- **Linting**: `npm run lint`
-- **Type Checking**: `npm run typecheck -w apps/web`
-
----
-
-## 🔒 Security & Standards
-
-- **RLS Everywhere**: No database access without explicit RLS policies.
-- **Type Safety**: Full TypeScript coverage.
-- **Secrets**: Never commit `.env` files. Use Supabase secrets for backend config.
+- **RLS Everywhere**: Strict database access control.
+- **Type Safety**: Full TypeScript compliance.
+- **Secrets Management**: No `.env` in repo.
 
 ---
 
