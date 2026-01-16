@@ -248,7 +248,7 @@ const AdminVendors = () => {
     const getImageUrl = (vendor: VendorData): string => {
         if (vendor.photos_json?.[0]?.url) return vendor.photos_json[0].url;
         if (typeof vendor.photos_json?.[0] === 'string') return vendor.photos_json[0];
-        return 'https://via.placeholder.com/100?text=' + encodeURIComponent(vendor.name.charAt(0));
+        return `data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='100' height='100'%3E%3Crect fill='%23334155' width='100' height='100'/%3E%3Ctext x='50%25' y='50%25' dominant-baseline='middle' text-anchor='middle' fill='%23fff' font-size='40' font-family='sans-serif'%3E${encodeURIComponent(vendor.name.charAt(0).toUpperCase())}%3C/text%3E%3C/svg%3E`;
     };
 
     return (
