@@ -25,17 +25,19 @@ export default defineConfig(({ mode }) => {
       // Vite PWA Plugin with Workbox
       VitePWA({
         registerType: 'autoUpdate',
+        injectRegister: 'auto',
         includeAssets: ['favicon.ico', 'robots.txt', 'apple-touch-icon.png'],
         manifest: {
           name: 'DineIn Malta',
           short_name: 'DineIn',
-          description: 'Discover and order from the best restaurants in Malta',
+          description: 'The premium dining experience. Order, pay, and enjoy with DineIn.',
           theme_color: '#0E1120',
           background_color: '#0E1120',
           display: 'standalone',
           orientation: 'portrait',
           scope: '/',
           start_url: '/',
+          categories: ['food', 'lifestyle', 'shopping'],
           icons: [
             {
               src: '/icons/icon-57.png',
@@ -92,54 +94,67 @@ export default defineConfig(({ mode }) => {
               purpose: 'maskable'
             }
           ],
-          categories: ['food', 'lifestyle', 'shopping']
+          shortcuts: [
+            {
+              name: "View Menu",
+              short_name: "Menu",
+              description: "Browse the menu",
+              url: "/",
+              icons: [{ src: "/icons/icon-192.png", sizes: "192x192", type: "image/png" }]
+            },
+            {
+              name: "Scan QR",
+              short_name: "Scan",
+              description: "Scan to order",
+              url: "/scan",
+              icons: [{ src: "/icons/icon-192.png", sizes: "192x192", type: "image/png" }]
+            }
+          ]
         },
         workbox: {
-          globPatterns: ['**/*.{js,css,html,ico,png,svg,webp,avif}'],
+          globPatterns: ['**/*.{js,css,html,ico,png,svg,webp,avif,woff,woff2}'],
           navigateFallback: '/offline.html',
           navigateFallbackAllowlist: [/^(?!\/__).*/],
           runtimeCaching: [
-            // Menu data: Cache-first strategy (1 hour) - allows offline menu viewing
+            // Menu data: Cache-first strategy (1 hour)
             {
               urlPattern: ({ url }) => {
-                // Match menu/vendor API calls from Supabase
-                return url.pathname.includes('/rest/v1/vendors') || 
-                       url.pathname.includes('/rest/v1/menu_items') ||
-                       (url.pathname.includes('/rest/v1/') && url.searchParams.has('vendor_id'));
+                return url.pathname.includes('/rest/v1/vendors') ||
+                  url.pathname.includes('/rest/v1/menu_items') ||
+                  (url.pathname.includes('/rest/v1/') && url.searchParams.has('vendor_id'));
               },
               handler: 'CacheFirst',
               options: {
                 cacheName: 'menu-data-cache',
                 expiration: {
                   maxEntries: 50,
-                  maxAgeSeconds: 60 * 60 // 1 hour - menu data cached for 1 hour
+                  maxAgeSeconds: 60 * 60 // 1 hour
                 },
                 cacheableResponse: {
                   statuses: [0, 200]
                 }
               }
             },
-            // Orders: Network-first strategy (always fetch fresh orders)
+            // Orders: Network-first strategy
             {
               urlPattern: ({ url }) => {
-                // Match order API calls
                 return url.pathname.includes('/rest/v1/orders') ||
-                       url.pathname.includes('/functions/order');
+                  url.pathname.includes('/functions/order');
               },
               handler: 'NetworkFirst',
               options: {
                 cacheName: 'orders-cache',
                 expiration: {
                   maxEntries: 20,
-                  maxAgeSeconds: 60 * 5 // 5 minutes fallback cache only
+                  maxAgeSeconds: 60 * 5 // 5 minutes
                 },
-                networkTimeoutSeconds: 10,
+                networkTimeoutSeconds: 5,
                 cacheableResponse: {
                   statuses: [0, 200]
                 }
               }
             },
-            // Supabase API: Network-first with 1 hour cache
+            // Other Supabase API: Network-first
             {
               urlPattern: /^https:\/\/.*\.supabase\.co\/.*/i,
               handler: 'NetworkFirst',
@@ -147,12 +162,12 @@ export default defineConfig(({ mode }) => {
                 cacheName: 'supabase-api-cache',
                 expiration: {
                   maxEntries: 100,
-                  maxAgeSeconds: 60 * 60 // 1 hour
+                  maxAgeSeconds: 60 * 60
                 },
-                networkTimeoutSeconds: 10
+                networkTimeoutSeconds: 5
               }
             },
-            // Static assets: Cache-first indefinitely
+            // Static assets: Cache-first
             {
               urlPattern: /\.(?:png|jpg|jpeg|svg|gif|webp|avif|woff|woff2|ttf|eot)$/,
               handler: 'CacheFirst',
@@ -160,11 +175,11 @@ export default defineConfig(({ mode }) => {
                 cacheName: 'static-assets-cache',
                 expiration: {
                   maxEntries: 500,
-                  maxAgeSeconds: 60 * 60 * 24 * 365 // 1 year - effectively indefinite
+                  maxAgeSeconds: 60 * 60 * 24 * 365
                 }
               }
             },
-            // JavaScript and CSS: StaleWhileRevalidate for performance
+            // JS/CSS: StaleWhileRevalidate
             {
               urlPattern: /\.(?:js|css)$/,
               handler: 'StaleWhileRevalidate',
@@ -172,7 +187,7 @@ export default defineConfig(({ mode }) => {
                 cacheName: 'js-css-cache',
                 expiration: {
                   maxEntries: 100,
-                  maxAgeSeconds: 60 * 60 * 24 * 7 // 7 days
+                  maxAgeSeconds: 60 * 60 * 24 * 7
                 }
               }
             }
@@ -182,7 +197,7 @@ export default defineConfig(({ mode }) => {
           clientsClaim: true
         },
         devOptions: {
-          enabled: false // Disable in dev to avoid conflicts
+          enabled: false
         }
       }),
       // Brotli compression (best compression ratio)

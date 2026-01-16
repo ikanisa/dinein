@@ -1,11 +1,12 @@
 import React, { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import { UserType } from '../types';
 import { Spinner } from './Loading';
 
 interface RequireAuthProps {
   children: React.ReactNode;
-  requiredRole?: 'vendor' | 'admin';
+  requiredRole?: UserType;
   redirectTo?: string;
 }
 
@@ -34,13 +35,13 @@ export const RequireAuth: React.FC<RequireAuthProps> = ({
 
     // If role is required but user doesn't have the right role
     if (requiredRole && role !== requiredRole) {
-      // Admin can access vendor routes, but vendor cannot access admin
-      if (requiredRole === 'admin') {
+      // Admin can access staff routes, but staff cannot access admin
+      if (requiredRole === UserType.ADMIN) {
         // Only admin can access admin routes
         navigate(redirectTo || '/admin/login', { replace: true });
-      } else if (requiredRole === 'vendor' && role !== 'admin') {
-        // Vendor routes: only vendor or admin can access
-        navigate(redirectTo || '/vendor/login', { replace: true });
+      } else if (requiredRole === UserType.MANAGER && role !== UserType.ADMIN) {
+        // Manager routes: only manager or admin can access
+        navigate(redirectTo || '/manager/login', { replace: true });
       }
     }
   }, [user, role, loading, requiredRole, navigate, redirectTo]);
@@ -58,17 +59,17 @@ export const RequireAuth: React.FC<RequireAuthProps> = ({
     return <>{children}</>;
   }
 
-  // Require authentication for vendor/admin routes
+  // Require authentication for manager/admin routes
   if (!user) {
     return null; // Will redirect
   }
 
   // Check role
-  if (requiredRole === 'vendor' && role !== 'vendor' && role !== 'admin') {
+  if (requiredRole === UserType.MANAGER && role !== UserType.MANAGER && role !== UserType.ADMIN) {
     return null; // Will redirect
   }
 
-  if (requiredRole === 'admin' && role !== 'admin') {
+  if (requiredRole === UserType.ADMIN && role !== UserType.ADMIN) {
     return null; // Will redirect
   }
 

@@ -121,8 +121,8 @@ export const Modal: React.FC<ModalProps> = ({
                         }}
                         className={clsx(
                             'relative w-full',
-                            'bg-surface rounded-2xl shadow-elev-2',
-                            'border border-border',
+                            'bg-glass backdrop-blur-xl shadow-glass-lg',
+                            'border border-glassBorder',
                             'flex flex-col max-h-[90vh]',
                             sizeClasses[size],
                             className

@@ -1,247 +1,146 @@
-# DineIn Malta - Universal PWA
+# DineIn Malta - Monorepo
 
-A single, unified Progressive Web Application for the DineIn Malta platform with role-based access control.
+> **Status**: Active Development 🚧  
+> **Type**: AI-First Mobile PWA 📱  
+> **Design System**: Soft Liquid Glass ✨
 
-## Architecture
+**DineIn** is a next-generation restaurant ordering and reservation platform built for Malta. It leverages an AI-first approach to deliver a "native-app-like" Progressive Web App (PWA) experience with a premium "Soft Liquid Glass" aesthetic.
 
-This is a **monorepo with a single deployable app** (`apps/web`) that serves three user roles:
+---
 
-1. **Client (Public)**: Browse venues, place orders, make reservations
-2. **Vendor (Private)**: Manage menu, orders, tables, reservations
-3. **Admin (Private)**: Create vendors, manage users, system administration
+## 🚀 Mission
 
-### Key Features
+To revolutionize the dining experience in Malta by providing a seamless, beautiful, and intelligent platform for:
+- **Diners**: Easy QR ordering, reservations, and payments.
+- **Staff**: Efficient order management and table service.
+- **Admins**: Comprehensive platform oversight.
 
-- ✅ Single PWA deployment (Cloudflare Pages)
-- ✅ Role-based routing with frontend guards + Supabase RLS
-- ✅ Anonymous authentication for public access
-- ✅ Google OAuth for admin access
-- ✅ Email/password for vendor access
-- ✅ PWA-first (installable, offline support, service worker)
-- ✅ Mobile-first responsive design
-- ✅ Minimal, clean architecture
+---
 
-## Project Structure
+## 🛠 Tech Stack
+
+This project uses a modern, high-performance stack designed for scalability and user experience.
+
+- **Frontend**: [React](https://react.dev/) + [TypeScript](https://www.typescriptlang.org/)
+- **Build Tool**: [Vite](https://vitejs.dev/) (Monorepo support)
+- **Styling**: [Tailwind CSS](https://tailwindcss.com/) + Custom "Soft Liquid Glass" Design Tokens
+- **State Management**: [React Query](https://tanstack.com/query/latest) (Server State)
+- **Backend**: [Supabase](https://supabase.com/) (PostgreSQL, Auth, RLS, Realtime)
+- **Edge Logic**: [Supabase Edge Functions](https://supabase.com/docs/guides/functions) (Deno)
+- **Deployment**: [Cloudflare Pages](https://pages.cloudflare.com/)
+
+---
+
+## 📂 Architecture
+
+The project follows a standard monorepo structure:
 
 ```
-dinein/
+/
 ├── apps/
-│   └── web/                   # Single PWA application
-│       ├── src/               # Source code
-│       │   ├── pages/         # Route components
-│       │   ├── components/    # Reusable components
-│       │   ├── context/       # React contexts
-│       │   └── services/      # API services
-│       └── public/            # Static assets, icons, manifest
+│   └── web/            # Main PWA application (Client, Staff, Admin views)
 ├── supabase/
-│   ├── migrations/            # Database migrations
-│   ├── functions/             # Edge functions
-│   ├── seed/                  # Seed data
-│   └── scripts/               # Utility scripts
-├── docs/                      # Documentation
-└── scripts/                   # Dev scripts
+│   ├── functions/      # Edge functions (TypeScript/Deno)
+│   └── migrations/     # Database schema changes
+├── packages/           # Shared libraries (future use)
+└── docs/               # Project documentation
 ```
 
-## Getting Started
+### Key Documentation
+- **[API Integration Guide](docs/API_INTEGRATION.md)**: Details on data fetching, hooks, and error handling.
+- **[Database Schema](docs/DATABASE_SCHEMA.md)**: Comprehensive guide to tables, RLS policies, and enums.
+
+---
+
+## ✨ Key Features
+
+### 1. Role-Based Access Control (RBAC)
+Strict separation of concerns enforced via Database RLS and Application logic.
+- **Admin**: Full system access, vendor management, global settings.
+- **Staff**: Order management, menu updates, reservation handling for their specific vendor.
+- **Client**: Public access for ordering and reservations.
+
+### 2. "Soft Liquid Glass" UI/UX
+A custom design system featuring:
+- **Glassmorphism**: Translucent layers and blurs.
+- **Fluid Motion**: Smooth transitions and micro-interactions.
+- **Mobile-First**: Touch-optimized targets and gestures.
+
+### 3. AI-First Capabilities
+- **Smart Parsing**: Intelligent text processing for inputs.
+- **Assistive Features**: Planned AI integrations for menu recommendations and staff assistance.
+
+---
+
+## 🚦 Getting Started
 
 ### Prerequisites
+- Node.js (v18+)
+- npm (v9+)
+- Supabase CLI (if working on backend/migrations)
 
-- Node.js 20+
-- npm
-- Supabase project (or local Supabase instance)
+### Installation
 
-### Environment Variables
+```bash
+# Clone the repository
+git clone <repository-url>
 
-Create `.env.local` file in `apps/web/`:
-
-```env
-VITE_SUPABASE_URL=your_supabase_url
-VITE_SUPABASE_ANON_KEY=your_supabase_anon_key
+# Install dependencies
+npm install
 ```
-
-**Note:** `GEMINI_API_KEY` is only used server-side in Supabase edge functions, not in client builds. See [Supabase Setup](./docs/deployment/supabase-setup.md) for edge function configuration.
 
 ### Local Development
 
+Run the web application locally:
+
 ```bash
-cd apps/web
-npm install
+# Starts the dev server for apps/web
 npm run dev
 ```
 
-The app will be available at `http://localhost:5173` (or the port shown in terminal)
+The app will be available at `http://localhost:5173`.
 
-### Build for Production
+### Backend Development
+
+If you are working on database changes or edge functions:
 
 ```bash
-cd apps/web
+# Start local Supabase instance
+npx supabase start
+
+# Serve edge functions locally
+npx supabase functions serve
+```
+
+---
+
+## 📦 Building for Production
+
+To build the PWA for deployment:
+
+```bash
 npm run build
-npm run preview  # Test production build locally
 ```
 
-### Code Quality
+This acts as a standard command for `npm run build -w apps/web`.
 
-```bash
-npm run typecheck  # Type checking
-npm run lint       # Linting
-npm run lint:fix   # Auto-fix linting issues
-npm run format     # Format code
-npm test           # Run tests
-```
+---
 
-## Deployment
+## 🧪 Testing & Verification
 
-See the [Deployment Guide](./docs/DEPLOYMENT.md) for complete deployment instructions.
+- **Linting**: `npm run lint`
+- **Type Checking**: `npm run typecheck -w apps/web`
 
-### Quick Deploy
+---
 
-**Cloudflare Pages (Recommended):**
-```bash
-cd apps/web
-npm run deploy:cloudflare
-```
+## 🔒 Security & Standards
 
-Push to `main` branch triggers automatic deployment via GitHub Actions.
+- **RLS Everywhere**: No database access without explicit RLS policies.
+- **Type Safety**: Full TypeScript coverage.
+- **Secrets**: Never commit `.env` files. Use Supabase secrets for backend config.
 
-### Deployment Documentation
+---
 
-For detailed guides, see the [deployment documentation](./docs/deployment/README.md):
+## 📝 License
 
-- **[Cloudflare Pages](./docs/deployment/cloudflare-pages.md)** - Production deployment
-- **[Local Development](./docs/deployment/local-development.md)** - Local setup
-- **[Supabase Setup](./docs/deployment/supabase-setup.md)** - Database & backend
-- **[Troubleshooting](./docs/deployment/troubleshooting.md)** - Common issues
-
-## Supabase Setup
-
-### 1. Apply Migrations
-
-```bash
-# Via Supabase Dashboard (recommended)
-# Go to SQL Editor and run migrations in order:
-# - supabase/migrations/20251216131852_dinein_v1_schema.sql
-# - supabase/migrations/20250120000000_phase1_rls_performance_fix.sql
-# - ... (other migrations)
-
-# Or via CLI
-supabase db push
-```
-
-### 2. Deploy Edge Functions
-
-```bash
-supabase functions deploy gemini-features --project-ref YOUR_PROJECT_REF
-supabase functions deploy vendor_claim --project-ref YOUR_PROJECT_REF
-supabase functions deploy order_create --project-ref YOUR_PROJECT_REF
-supabase functions deploy order_update_status --project-ref YOUR_PROJECT_REF
-supabase functions deploy order_mark_paid --project-ref YOUR_PROJECT_REF
-supabase functions deploy tables_generate --project-ref YOUR_PROJECT_REF
-```
-
-### 3. Configure Authentication
-
-- Enable **Anonymous** authentication in Supabase Dashboard
-- Enable **Google OAuth** provider for admin access
-- Configure OAuth redirect URL: `https://your-domain.com/admin/dashboard`
-- Set up email/password for vendors
-
-## Route Structure
-
-### Public Routes (Client)
-- `/` - Home page
-- `/explore` - Discover nearby venues (Gemini-powered)
-- `/v/:vendorSlug` - Vendor menu page
-- `/v/:vendorSlug/t/:tableCode` - Menu with table context
-- `/profile` - User profile
-- `/order/:id` - Order status
-
-### Vendor Routes (Private - requires vendor role)
-- `/vendor/login` - Vendor login
-- `/vendor` - Vendor dashboard
-- `/vendor/menu` - Manage menu
-- `/vendor/orders` - Manage orders
-- `/vendor/tables` - Manage tables & QR codes
-
-### Admin Routes (Private - requires admin role)
-- `/admin/login` - Admin login (Google OAuth)
-- `/admin` - Admin dashboard
-- `/admin/vendors` - Manage vendors (create, edit, activate)
-- `/admin/users` - Manage vendor users
-- `/admin/system` - System settings
-
-## Authentication & Authorization
-
-### Client (Public)
-- Uses **anonymous authentication** (auto-initialized)
-- No login required
-- Can browse venues, place orders
-
-### Vendor
-- **Email/password** authentication
-- Must be provisioned by admin in `vendor_users` table
-- Can only access their assigned vendor's data
-
-### Admin
-- **Google OAuth** authentication only
-- Must exist in `admin_users` table
-- Full system access
-
-### Role Checking
-
-**Frontend**: Route guards (`RequireAuth` component) prevent unauthorized access
-**Backend**: Supabase RLS policies enforce data access at database level
-
-## Vendor Provisioning (Admin-Only)
-
-Vendors can **only** be created by admins:
-
-1. Admin logs in via Google OAuth
-2. Admin navigates to `/admin/vendors`
-3. Admin selects venue from Gemini discovery results
-4. Admin creates vendor record with status (pending/active)
-5. Admin creates vendor user accounts and assigns roles
-
-**Public vendor claiming has been removed** - this is now an admin-only operation.
-
-## Development
-
-### Adding New Features
-
-1. Create components in `apps/web/components/`
-2. Add pages in `apps/web/pages/`
-3. Update routes in `apps/web/App.tsx`
-4. Add services in `apps/web/services/`
-5. Update RLS policies in `supabase/migrations/` if needed
-
-### Testing
-
-```bash
-cd apps/web
-npm test
-npm run test:watch
-npm run test:coverage
-```
-
-## Documentation
-
-### Getting Started
-- [Deployment Guide](./docs/DEPLOYMENT.md) - Quick start and deployment overview
-- [Local Development Setup](./docs/deployment/local-development.md) - Setup for local development
-
-### Production & Operations
-- [Cloudflare Pages Deployment](./docs/deployment/cloudflare-pages.md) - Production deployment guide
-- [Supabase Backend Setup](./docs/deployment/supabase-setup.md) - Database, RLS, and edge functions
-- [Production Readiness](./docs/production-readiness.md) - Production checklist
-- [Troubleshooting](./docs/deployment/troubleshooting.md) - Common issues and solutions
-
-### Architecture & Design
-- [User Journeys](./docs/user-journeys.md) - Complete user flows
-- [Database Schema](./docs/DATABASE_SCHEMA.md) - Database structure
-- [API Integration](./docs/API_INTEGRATION.md) - API documentation
-
-### Changelog
-- [Changelog](./docs/CHANGELOG.md) - Version history
-
-## License
-
-Private - All rights reserved
+Proprietary Software. All rights reserved.

@@ -49,8 +49,6 @@ const mapVenue = (row: any): Venue => ({
   description: '', // Not in vendors schema
   revolutHandle: row.revolut_link || '',
   phone: row.phone,
-  googleMapsUrl: row.google_place_id ? `https://maps.google.com/?cid=${row.google_place_id}` : undefined,
-  googlePlaceId: row.google_place_id,
   whatsappNumber: row.whatsapp,
   website: row.website,
   instagramUrl: undefined, // Not in vendors schema
@@ -60,8 +58,6 @@ const mapVenue = (row: any): Venue => ({
   menu: [], // Menu items are in separate menu_items table
   imageUrl: row.photos_json && row.photos_json[0] ? (row.photos_json[0].url || row.photos_json[0]) : undefined,
   ownerId: row.owner_id, // Will need to join vendor_users to get this
-  lat: row.lat,
-  lng: row.lng,
   currency: 'EUR', // Fixed in schema
   status: row.status || 'active'
 });
@@ -153,7 +149,7 @@ export const getVenueById = async (id: string): Promise<Venue | undefined> => {
   // Optimized query: select only needed columns
   const { data, error } = await supabase
     .from('vendors')
-    .select('id, name, address, google_place_id, revolut_link, phone, whatsapp, website, hours_json, photos_json, lat, lng, status')
+    .select('id, name, address, revolut_link, phone, whatsapp, website, hours_json, photos_json, status')
     .eq('id', id)
     .single();
   if (error) return undefined;
@@ -175,7 +171,7 @@ export const getVenueBySlugOrId = async (value: string): Promise<Venue | null> =
 
   const { data, error } = await supabase
     .from('vendors')
-    .select('id, name, address, google_place_id, revolut_link, phone, whatsapp, website, hours_json, photos_json, lat, lng, status, slug')
+    .select('id, name, address, revolut_link, phone, whatsapp, website, hours_json, photos_json, status, slug')
     .eq('slug', value)
     .single();
 
@@ -213,7 +209,7 @@ export const getAllVenues = async (): Promise<Venue[]> => {
   // Optimized query: select only needed columns
   const { data, error } = await supabase
     .from('vendors')
-    .select('id, name, address, google_place_id, revolut_link, phone, whatsapp, website, hours_json, photos_json, lat, lng, status')
+    .select('id, name, address, revolut_link, phone, whatsapp, website, hours_json, photos_json, status')
     .eq('status', 'active');
   if (error) handleSupabaseError(error, 'getAllVenues');
   const venues = (data || []).map(mapVenue);
@@ -249,7 +245,7 @@ export const getFeaturedVenues = async (limit = 10): Promise<Venue[]> => {
   // Optimized query: select only needed columns
   const { data, error } = await supabase
     .from('vendors')
-    .select('id, name, address, google_place_id, revolut_link, phone, whatsapp, website, hours_json, photos_json, lat, lng, status')
+    .select('id, name, address, revolut_link, phone, whatsapp, website, hours_json, photos_json, status')
     .eq('status', 'active')
     .limit(limit);
   if (error) handleSupabaseError(error, 'getFeaturedVenues');
@@ -281,12 +277,9 @@ export const getFeaturedVenues = async (limit = 10): Promise<Venue[]> => {
 };
 
 export const createVendor = async (vendorData: {
-  google_place_id: string;
   name: string;
   slug?: string;
   address?: string;
-  lat?: number;
-  lng?: number;
   hours_json?: any;
   photos_json?: any;
   website?: string;
@@ -308,7 +301,6 @@ export const createVendor = async (vendorData: {
   const vendor = data.vendor;
   return {
     id: vendor.id,
-    googlePlaceId: vendor.google_place_id,
     name: vendor.name,
     address: vendor.address || '',
     description: '', // Not in vendor schema
@@ -321,8 +313,6 @@ export const createVendor = async (vendorData: {
     menu: [],
     imageUrl: vendor.photos_json?.[0] || undefined,
     ownerId: data.membership?.auth_user_id,
-    lat: vendor.lat,
-    lng: vendor.lng,
     currency: 'EUR',
     status: vendor.status
   };
@@ -617,9 +607,9 @@ export const getOrdersForVenue = async (venueId: string): Promise<Order[]> => {
     `)
     .eq('vendor_id', venueId)
     .order('created_at', { ascending: false });
-  
+
   if (error) handleSupabaseError(error, 'getOrdersForVenue');
-  
+
   // Map orders and include order items
   const orders = (data || []).map((row: any) => {
     const order = mapOrder(row);
@@ -640,7 +630,7 @@ export const getOrdersForVenue = async (venueId: string): Promise<Order[]> => {
     }
     return order;
   });
-  
+
   return orders;
 };
 

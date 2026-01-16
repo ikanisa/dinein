@@ -44,7 +44,7 @@ export const QuickActions: React.FC<QuickActionsProps> = ({
           aria-label="Today's statistics"
         >
           <span>📊</span>
-          <span>Today's Stats</span>
+          <span>Today&apos;s Stats</span>
         </button>
       )}
       {onPrintQR && (

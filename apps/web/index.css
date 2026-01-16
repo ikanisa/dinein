@@ -8,3 +8,36 @@
   font-family: 'Fraunces';
   font-display: swap;
 }
+
+/* Custom Scrollbar - Premium Feel */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background-color: var(--border-strong);
+  border-radius: var(--radius-full);
+  border: 2px solid transparent;
+  background-clip: content-box;
+  transition: background-color var(--duration-normal);
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background-color: var(--text-subtle);
+}
+
+/* Text Selection - Brand Color */
+::selection {
+  background-color: var(--color-primary-200);
+  color: var(--color-ink);
+}
+
+[data-theme="dark"] ::selection {
+  background-color: var(--color-primary-800);
+  color: white;
+}

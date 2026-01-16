@@ -18,6 +18,7 @@ export { Toast, ToastContainer } from './Toast';
 export { Table, TableHeader, TableBody, TableRow, TableCell, TableHead } from './Table';
 export { Badge } from './Badge';
 export { SectionHeader } from './SectionHeader';
+export { Tabs, TabPanel } from './Tabs';
 
 // State Components
 export { EmptyState } from './EmptyState';
@@ -32,3 +33,5 @@ export type { TableProps, TableHeaderProps, TableBodyProps, TableRowProps, Table
 export type { BadgeProps } from './Badge';
 export type { EmptyStateProps } from './EmptyState';
 export type { ErrorStateProps } from './ErrorState';
+export type { TabsProps, TabPanelProps, TabItem } from './Tabs';
+

@@ -79,35 +79,35 @@ SELECT count(*) as audit_count FROM audit_logs;
 RESET ROLE;
 
 -- ============================================================================
--- TEST 3: Vendor Staff Access
+-- TEST 3: Manager Access
 -- ============================================================================
--- Staff can see their vendor's data but cannot modify vendor profile
+-- Managers can see their venue's data and manage it
 
 SET ROLE authenticated;
 SELECT set_config('request.jwt.claims', '{"sub": "00000000-0000-0000-0000-000000000012"}', true);
 
--- Should see their vendor
-SELECT 'TEST 3.1: Vendor staff sees their vendor' as test;
+-- Should see their venue
+SELECT 'TEST 3.1: Manager sees their venue' as test;
 SELECT id, name FROM vendors WHERE id = '11111111-1111-1111-1111-111111111111'::uuid;
 -- Expected: 1 row (Zion Reggae Bar)
 
--- Should see their vendor's orders (if any)
-SELECT 'TEST 3.2: Vendor staff sees vendor orders' as test;
+-- Should see their venue's orders (if any)
+SELECT 'TEST 3.2: Manager sees venue orders' as test;
 SELECT count(*) as order_count FROM orders WHERE vendor_id = '11111111-1111-1111-1111-111111111111'::uuid;
 -- Expected: orders for Zion Reggae Bar
 
--- Should NOT see other vendor's data
-SELECT 'TEST 3.3: Vendor staff cannot see other vendor orders' as test;
+-- Should NOT see other venue's data
+SELECT 'TEST 3.3: Manager cannot see other venue orders' as test;
 SELECT count(*) as other_orders FROM orders WHERE vendor_id = '22222222-2222-2222-2222-222222222222'::uuid;
 -- Expected: 0 rows (or only if they placed order as client)
 
 -- Should NOT see admin_users
-SELECT 'TEST 3.4: Vendor staff cannot see admin_users' as test;
+SELECT 'TEST 3.4: Manager cannot see admin_users' as test;
 SELECT count(*) as admin_count FROM admin_users;
 -- Expected: 0 rows
 
 -- Should NOT see audit_logs
-SELECT 'TEST 3.5: Vendor staff cannot see audit_logs' as test;
+SELECT 'TEST 3.5: Manager cannot see audit_logs' as test;
 SELECT count(*) as audit_count FROM audit_logs;
 -- Expected: 0 rows
 

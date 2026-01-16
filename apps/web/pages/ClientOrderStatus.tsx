@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { GlassCard } from '../components/GlassCard';
 import { Spinner } from '../components/Loading';
+import { Button } from '../components/ui';
 import { getOrderById } from '../services/databaseService';
 import { Order, OrderStatus, PaymentStatus } from '../types';
 import { toast } from 'react-hot-toast';
@@ -97,12 +98,13 @@ const ClientOrderStatus = () => {
       <div className="min-h-screen flex items-center justify-center bg-background p-6">
         <GlassCard className="p-8 text-center">
           <h2 className="text-2xl font-bold text-foreground mb-4">Order Not Found</h2>
-          <button
+          <Button
             onClick={() => navigate('/')}
-            className="px-6 py-3 bg-primary-500 text-white rounded-xl font-bold"
+            variant="primary"
+            size="lg"
           >
             Go Home
-          </button>
+          </Button>
         </GlassCard>
       </div>
     );
@@ -219,22 +221,26 @@ const ClientOrderStatus = () => {
         {/* Actions */}
         <div className="space-y-3">
           {(order.paymentStatus === PaymentStatus.UNPAID) && (
-            <button
+            <Button
               onClick={() => {
                 // Navigate to payment or show payment options
                 toast('Payment options coming soon', { icon: 'ℹ️' });
               }}
-              className="w-full py-4 bg-primary-500 text-white rounded-xl font-bold"
+              variant="primary"
+              size="lg"
+              className="w-full"
             >
               Pay Now
-            </button>
+            </Button>
           )}
-          <button
+          <Button
             onClick={() => navigate('/')}
-            className="w-full py-4 bg-surface-highlight text-foreground rounded-xl font-bold border border-border"
+            variant="outline"
+            size="lg"
+            className="w-full"
           >
             Back to Home
-          </button>
+          </Button>
         </div>
 
         {/* Polling Indicator */}

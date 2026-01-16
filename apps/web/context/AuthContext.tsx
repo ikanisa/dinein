@@ -3,13 +3,12 @@ import { supabase } from '../services/supabase';
 import type { User } from '@supabase/supabase-js';
 import { errorTracker } from '../services/errorTracking';
 
-export type UserRole = 'client' | 'vendor' | 'admin';
+export type UserRole = 'client' | 'manager' | 'admin';
 
 export interface AuthUser {
   user: User | null;
   role: UserRole;
   vendorId: string | null;
-  vendorRole: 'owner' | 'manager' | 'staff' | null;
   loading: boolean;
 }
 
@@ -35,14 +34,13 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   const [user, setUser] = useState<User | null>(null);
   const [role, setRole] = useState<UserRole>('client');
   const [vendorId, setVendorId] = useState<string | null>(null);
-  const [vendorRole, setVendorRole] = useState<'owner' | 'manager' | 'staff' | null>(null);
+  // vendorRole removed - all vendor users are now 'manager'
   const [loading, setLoading] = useState(true);
 
   const checkRole = async (authUser: User | null): Promise<void> => {
     if (!authUser) {
       setRole('client');
       setVendorId(null);
-      setVendorRole(null);
       return;
     }
 
@@ -58,34 +56,30 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       if (adminData) {
         setRole('admin');
         setVendorId(null);
-        setVendorRole(null);
         return;
       }
 
-      // Check vendor
+      // Check vendor (Mapped to MANAGER role)
       const { data: vendorData } = await supabase
         .from('vendor_users')
-        .select('vendor_id, role')
+        .select('vendor_id')
         .eq('auth_user_id', authUser.id)
         .eq('is_active', true)
         .single();
 
       if (vendorData) {
-        setRole('vendor');
+        setRole('manager');
         setVendorId(vendorData.vendor_id);
-        setVendorRole(vendorData.role as 'owner' | 'manager' | 'staff');
         return;
       }
 
       // Default to client
       setRole('client');
       setVendorId(null);
-      setVendorRole(null);
     } catch (error) {
       console.error('Error checking role:', error);
       setRole('client');
       setVendorId(null);
-      setVendorRole(null);
     }
   };
 
@@ -135,12 +129,11 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       errorTracker.setUser(user.id, user.email ?? undefined, {
         role,
         vendorId,
-        vendorRole,
       });
     } else {
       errorTracker.clearUser();
     }
-  }, [user, role, vendorId, vendorRole]);
+  }, [user, role, vendorId]);
 
   const signInAnonymously = async () => {
     const { data, error } = await supabase.auth.signInAnonymously();
@@ -179,14 +172,12 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     setUser(null);
     setRole('client');
     setVendorId(null);
-    setVendorRole(null);
   };
 
   const value: AuthContextType = {
     user,
     role,
     vendorId,
-    vendorRole,
     loading,
     signInAnonymously,
     signInWithEmail,

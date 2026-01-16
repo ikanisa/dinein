@@ -50,23 +50,23 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(({
 
     const variantClasses = {
         default: clsx(
-            'bg-surface border border-border',
-            'hover:border-border-strong',
-            'focus:border-primary-500 focus:ring-2 focus:ring-primary-500/20',
+            'bg-surface/80 backdrop-blur-sm border border-border',
+            'hover:border-border-strong hover:bg-surface',
+            'focus:border-primary-500 focus:ring-4 focus:ring-primary-500/10 focus:bg-surface',
             hasError && 'border-error focus:border-error focus:ring-error/20',
             success && !hasError && 'border-success focus:border-success focus:ring-success/20'
         ),
         glass: clsx(
             'bg-glass backdrop-blur-lg border border-glassBorder',
             'hover:bg-glass-strong',
-            'focus:border-primary-500 focus:ring-2 focus:ring-primary-500/20',
+            'focus:border-primary-500 focus:ring-4 focus:ring-primary-500/10 focus:shadow-glass-lg',
             hasError && 'border-error focus:border-error focus:ring-error/20',
             success && !hasError && 'border-success focus:border-success focus:ring-success/20'
         ),
         filled: clsx(
             'bg-surface-highlight border-transparent',
             'hover:bg-surface-highlight/80',
-            'focus:bg-surface focus:border-primary-500 focus:ring-2 focus:ring-primary-500/20',
+            'focus:bg-surface focus:border-primary-500 focus:ring-4 focus:ring-primary-500/10',
             hasError && 'bg-error-bg focus:border-error focus:ring-error/20',
             success && !hasError && 'bg-success-bg focus:border-success focus:ring-success/20'
         ),

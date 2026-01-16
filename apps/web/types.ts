@@ -1,7 +1,8 @@
 export enum UserType {
-  CLIENT = 'CLIENT',
-  VENDOR = 'VENDOR',
-  ADMIN = 'ADMIN'
+  CLIENT = 'client',
+  STAFF = 'staff',    // Vendor/bar staff (primary role)
+  MANAGER = 'manager', // Legacy, maps to STAFF
+  ADMIN = 'admin'
 }
 
 export enum OrderStatus {
@@ -54,14 +55,12 @@ export interface MenuItem {
 
 export interface Venue {
   id: string;
-  googlePlaceId?: string; // For claiming
   name: string;
   address: string;
   description: string;
   revolutHandle: string;
   phone?: string;
   whatsappNumber?: string;
-  googleMapsUrl?: string;
   website?: string;
   instagramUrl?: string;
   facebookUrl?: string;
@@ -70,8 +69,6 @@ export interface Venue {
   menu: MenuItem[];
   imageUrl?: string;
   ownerId?: string;
-  lat?: number;
-  lng?: number;
   currency?: string; // e.g., '€', '$', '£'
   status?: 'active' | 'pending_claim' | 'suspended';
 }

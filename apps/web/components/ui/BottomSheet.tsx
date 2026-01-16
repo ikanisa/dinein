@@ -129,8 +129,8 @@ export const BottomSheet: React.FC<BottomSheetProps> = ({
                         onDragEnd={handleDragEnd}
                         className={clsx(
                             'relative w-full',
-                            'bg-surface rounded-t-3xl shadow-elev-2',
-                            'border-t border-x border-border',
+                            'bg-glass backdrop-blur-xl shadow-glass-lg',
+                            'border-t border-x border-glassBorder',
                             'flex flex-col',
                             'pb-safe-bottom',
                             heightClasses[height],

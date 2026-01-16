@@ -92,9 +92,6 @@ supabase functions deploy order_mark_paid --project-ref your-project-ref
 supabase functions deploy vendor_claim --project-ref your-project-ref
 supabase functions deploy tables_generate --project-ref your-project-ref
 
-# Location search
-supabase functions deploy nearby_places_live --project-ref your-project-ref
-
 # Admin (migrations)
 supabase functions deploy apply_migrations --project-ref your-project-ref
 ```
@@ -186,7 +183,6 @@ supabase db execute -f supabase/scripts/verify_rls_status.sql --project-ref your
 - `reservations` - Table reservations
 - `profiles` - User profiles
 - `audit_logs` - System audit logs
-- `api_rate_limits` - Rate limiting
 
 ### Policy Categories
 

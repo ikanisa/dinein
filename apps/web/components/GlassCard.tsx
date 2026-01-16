@@ -16,9 +16,9 @@ interface GlassCardProps extends Omit<HTMLMotionProps<'div'>, 'onClick'> {
 }
 
 const variantClasses = {
-  default: 'glass-panel rounded-2xl',
-  elevated: 'glass-panel rounded-2xl shadow-glass-lg',
-  inset: 'bg-surface-highlight/50 rounded-2xl border border-border shadow-glass-inset',
+  default: 'glass-panel rounded-2xl border-white/20',
+  elevated: 'glass-panel rounded-2xl shadow-glass-lg border-white/20',
+  inset: 'bg-surface-highlight/40 rounded-2xl border border-white/5 shadow-glass-inset',
 };
 
 const accentClasses = {

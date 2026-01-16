@@ -16,24 +16,7 @@ Object.defineProperty(window, 'matchMedia', {
   })),
 });
 
-// Mock navigator.geolocation
-Object.defineProperty(navigator, 'geolocation', {
-  writable: true,
-  value: {
-    getCurrentPosition: jest.fn((success) =>
-      success({
-        coords: {
-          latitude: 35.8997,
-          longitude: 14.5147,
-          accuracy: 10,
-        },
-        timestamp: Date.now(),
-      })
-    ),
-    watchPosition: jest.fn(),
-    clearWatch: jest.fn(),
-  },
-});
+
 
 // Mock navigator.vibrate
 Object.defineProperty(navigator, 'vibrate', {

@@ -32,7 +32,7 @@ const SettingsPage = () => {
       try {
         const u = await getMyProfile();
         setUser(u);
-        
+
         // Load order history from localStorage
         const stored = localStorage.getItem('my_orders_ids');
         if (stored) {
@@ -69,7 +69,7 @@ const SettingsPage = () => {
       }
 
       const permission = await requestNotificationPermission();
-      
+
       if (permission !== 'granted') {
         toast.error(t('notifications.permissionDenied'));
         return;
@@ -77,7 +77,7 @@ const SettingsPage = () => {
 
       // Register push subscription
       const subscription = await registerPushSubscription();
-      
+
       if (subscription) {
         // Save subscription to backend (optional - implement your backend endpoint)
         // await savePushSubscriptionToBackend(subscription, user.id);
@@ -188,13 +188,12 @@ const SettingsPage = () => {
                   <div className="flex-1">
                     <div className="flex items-center gap-2 mb-1">
                       <span className="font-bold text-foreground">Order {order.orderCode}</span>
-                      <span className={`text-xs px-2 py-0.5 rounded-full ${
-                        order.status === OrderStatus.SERVED 
+                      <span className={`text-xs px-2 py-0.5 rounded-full ${order.status === OrderStatus.SERVED
                           ? 'bg-green-500/20 text-green-600'
                           : order.status === OrderStatus.CANCELLED
-                          ? 'bg-red-500/20 text-red-600'
-                          : 'bg-yellow-500/20 text-yellow-600'
-                      }`}>
+                            ? 'bg-red-500/20 text-red-600'
+                            : 'bg-yellow-500/20 text-yellow-600'
+                        }`}>
                         {t(`order.${order.status.toLowerCase()}`)}
                       </span>
                     </div>
@@ -220,13 +219,13 @@ const SettingsPage = () => {
                 <span className="text-xs text-muted">{t('settings.filterMenuItems')}</span>
               </div>
               <button
-                onClick={() => {/* TODO: Implement dietary filters modal */}}
+                onClick={() => {/* TODO: Implement dietary filters modal */ }}
                 className="text-sm text-primary-600 font-medium"
               >
                 {t('common.edit')}
               </button>
             </div>
-            
+
             <div className="border-t border-border pt-4 flex justify-between items-center">
               <span className="font-medium text-foreground">🌐 {t('settings.language')}</span>
               <select
@@ -263,16 +262,14 @@ const SettingsPage = () => {
               <button
                 onClick={toggleNotify}
                 disabled={!isPushNotificationSupported()}
-                className={`w-12 h-6 rounded-full p-1 transition-colors ${
-                  user.notificationsEnabled && isPushNotificationSupported()
+                className={`w-12 h-6 rounded-full p-1 transition-colors ${user.notificationsEnabled && isPushNotificationSupported()
                     ? 'bg-green-500'
                     : 'bg-gray-600'
-                } disabled:opacity-50 disabled:cursor-not-allowed`}
+                  } disabled:opacity-50 disabled:cursor-not-allowed`}
                 aria-label={t('settings.pushNotifications')}
               >
-                <div className={`w-4 h-4 rounded-full bg-white transition-transform ${
-                  user.notificationsEnabled && isPushNotificationSupported() ? 'translate-x-6' : ''
-                }`} />
+                <div className={`w-4 h-4 rounded-full bg-white transition-transform ${user.notificationsEnabled && isPushNotificationSupported() ? 'translate-x-6' : ''
+                  }`} />
               </button>
             </div>
           </GlassCard>
@@ -311,18 +308,45 @@ const SettingsPage = () => {
           )}
         </section>
 
+        {/* Business Section - Join as Bar CTA */}
+        <section>
+          <h2 className="text-lg font-bold mb-4 text-foreground">FOR BUSINESS</h2>
+          <GlassCard className="overflow-hidden">
+            <div className="relative">
+              {/* Gradient background */}
+              <div className="absolute inset-0 bg-gradient-to-r from-primary-500 via-secondary-500 to-primary-600 opacity-90" />
+
+              <div className="relative p-6 text-center">
+                <div className="text-4xl mb-3">🍺</div>
+                <h3 className="text-xl font-bold text-white mb-2">
+                  Own a Bar or Restaurant?
+                </h3>
+                <p className="text-white/80 text-sm mb-4">
+                  Join DineIn and let customers order directly from their phones
+                </p>
+                <button
+                  onClick={() => navigate('/bar/onboard')}
+                  className="w-full py-3 px-6 bg-white text-ink font-bold rounded-xl shadow-lg hover:shadow-xl active:scale-95 transition-all duration-200"
+                >
+                  Join as a Bar →
+                </button>
+              </div>
+            </div>
+          </GlassCard>
+        </section>
+
         {/* About Section */}
         <section>
           <h2 className="text-lg font-bold mb-4 text-foreground">{t('settings.about').toUpperCase()}</h2>
           <GlassCard className="space-y-3">
             <button
-              onClick={() => {/* TODO: Open Terms of Service */}}
+              onClick={() => {/* TODO: Open Terms of Service */ }}
               className="w-full text-left py-3 border-b border-border text-foreground hover:text-primary-600 transition-colors"
             >
               {t('settings.termsOfService')}
             </button>
             <button
-              onClick={() => {/* TODO: Open Privacy Policy */}}
+              onClick={() => {/* TODO: Open Privacy Policy */ }}
               className="w-full text-left py-3 border-b border-border text-foreground hover:text-primary-600 transition-colors"
             >
               {t('settings.privacyPolicy')}

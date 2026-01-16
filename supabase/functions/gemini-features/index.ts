@@ -10,10 +10,8 @@ const corsHeaders = {
 
 const geminiRequestSchema = z.object({
   action: z.enum([
-    "discover",
     "search",
     "enrich-profile",
-    "adapt",
     "generate-image",
     "parse-menu",
     "smart-description",
@@ -22,33 +20,16 @@ const geminiRequestSchema = z.object({
 });
 
 const payloadSchemas = {
-  discover: z.object({
-    lat: z.number(),
-    lng: z.number(),
-    radius: z.number().optional(),
-  }),
   search: z.object({
     query: z.string().min(1),
-    lat: z.number().optional(),
-    lng: z.number().optional(),
   }),
   "enrich-profile": z.object({
     name: z.string().min(1),
     address: z.string().min(1),
   }),
-  adapt: z.object({
-    lat: z.number(),
-    lng: z.number(),
-  }),
   "generate-image": z.object({
     prompt: z.string().min(1),
     size: z.enum(["1K", "2K", "4K"]).optional(),
-    locationContext: z.object({
-      city: z.string().optional(),
-      country: z.string().optional(),
-      lat: z.number().optional(),
-      lng: z.number().optional(),
-    }).optional(),
     referenceImages: z.array(z.string()).optional(),
   }),
   "parse-menu": z.object({
@@ -194,168 +175,59 @@ function parseJSON(text: string | undefined, fallback: any = []): any {
   }
 }
 
-/**
- * Calculate distance between two coordinates (Haversine)
- */
-function calculateDistance(lat1: number, lng1: number, lat2: number, lng2: number): number {
-  const R = 6371e3;
-  const φ1 = lat1 * Math.PI / 180;
-  const φ2 = lat2 * Math.PI / 180;
-  const Δφ = (lat2 - lat1) * Math.PI / 180;
-  const Δλ = (lng2 - lng1) * Math.PI / 180;
-  const a = Math.sin(Δφ / 2) * Math.sin(Δφ / 2) +
-    Math.cos(φ1) * Math.cos(φ2) *
-    Math.sin(Δλ / 2) * Math.sin(Δλ / 2);
-  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-  return Math.round(R * c);
-}
-
 // ============================================================================
 // HANDLERS - Only essential functions
 // ============================================================================
 
-// 1. DISCOVER - Find nearby venues (sorted by distance)
-async function handleDiscover(payload: { lat: number; lng: number; radius?: number }) {
-  const { lat, lng, radius = 5000 } = payload;
+// 1. SEARCH - Search venues by query (Global/Context-free)
+async function handleSearch(payload: { query: string }) {
+  const { query } = payload;
 
-  const prompt = `Find ALL nearby restaurants, bars, cafes, and dining venues within ${radius} meters of latitude ${lat}, longitude ${lng}.
-
-CRITICAL REQUIREMENTS:
-1. Sort by DISTANCE FIRST - nearest venues first
-2. Include ALL venues found (no limit on count)
-3. Use Google Maps grounding to get accurate, real-time data
-
-For each venue, provide comprehensive data from Google Maps:
-- name (required, from Google Maps)
-- google_place_id (required, from Google Maps Place ID)
-- address (full address from Google Maps)
-- lat, lng (REQUIRED, precise coordinates from Google Maps)
-- distance_meters (calculate exact distance using Haversine formula)
-- rating (0-5, from Google Maps user ratings)
-- user_rating_total (number of reviews from Google Maps)
-- price_level (1-4, from Google Maps price indicators)
-- opening_hours_text (current status: "Open now", "Closes at XX:XX", etc.)
-- opening_hours_detailed (structured hours for each day)
-- website (from Google Maps)
-- phone (REQUIRED - international format with country code from Google Maps, e.g., +250788123456)
-- photo_url (REQUIRED - high quality image URLs from Google Maps Photos API)
-- photo_references (array of Google Maps photo reference IDs)
-- place_types (array of place types from Google Maps: "restaurant", "bar", "cafe", etc.)
-- quick_tags (array of 3-5 descriptive tags like "cocktails", "live music", "outdoor seating", "romantic")
-- category_tags (from Google Maps place types and user reviews: "trending", "outdoor seating", "live music", "family-friendly", etc.)
-- why_recommended (one compelling sentence based on reviews and place characteristics)
-- city (from Google Maps address components)
-- country (from Google Maps address components)
-- current_popularity (if available from Google Maps Popular Times data)
-
-Use Google Maps grounding extensively to get accurate, up-to-date information including:
-- Real-time opening hours and current status
-- Recent photos
-- Accurate ratings and review counts
-- Precise location data
-- Place types and categories
-
-Return as JSON array sorted by distance (nearest first).`;
-
-  const result = await callGemini(GEMINI_MODELS.text, prompt, {
-    tools: [{ googleMaps: {} }],
-    toolConfig: {
-      retrievalConfig: {
-        latLng: { latitude: lat, longitude: lng },
-      },
-    },
-    temperature: 0.3,
-    maxTokens: 4096,
-  });
-
-  const venues = parseJSON(result.text, []);
-
-  // Format phone numbers, calculate distances, and sort
-  const processed = venues.map((venue: any) => {
-    if (venue.phone) {
-      venue.phone = formatPhoneNumber(venue.phone);
-      venue.whatsapp = venue.phone;
-    }
-    if (venue.lat && venue.lng && !venue.distance_meters) {
-      venue.distance_meters = calculateDistance(lat, lng, venue.lat, venue.lng);
-    }
-    return venue;
-  });
-
-  processed.sort((a: any, b: any) => (a.distance_meters || 999999) - (b.distance_meters || 999999));
-  return processed;
-}
-
-// 2. SEARCH - Search venues by query
-async function handleSearch(payload: { query: string; lat?: number; lng?: number }) {
-  const { query, lat, lng } = payload;
-
-  const locationContext = lat && lng ? `near latitude ${lat}, longitude ${lng}` : "";
-  const prompt = `Search for restaurants, bars, cafes, and dining venues matching "${query}" ${locationContext}.
+  const prompt = `Search for restaurants, bars, cafes, and dining venues matching "${query}".
 
 For each venue, provide:
 - name (required)
-- google_place_id
 - address
-- lat, lng
-- distance_meters (if location provided)
 - rating
 - price_level
 - opening_hours_text
 - website
 - phone (REQUIRED - international format with country code)
-- photo_url (REQUIRED - image URLs from Google Maps)
-- photo_references (array)
 - quick_tags
 - category_tags
 - why_recommended
-- city (from Google Maps)
-- country (from Google Maps)
+- city
+- country
 
-Return as JSON array${lat && lng ? ' sorted by distance' : ''}.`;
-
-  const toolConfig: any = {};
-  if (lat && lng) {
-    toolConfig.retrievalConfig = {
-      latLng: { latitude: lat, longitude: lng },
-    };
-  }
+Return as JSON array.`;
 
   const result = await callGemini(GEMINI_MODELS.text, prompt, {
-    tools: [{ googleMaps: {} }, { googleSearch: {} }],
-    toolConfig,
+    tools: [{ googleSearch: {} }],
     temperature: 0.4,
     maxTokens: 4096,
   });
 
   const venues = parseJSON(result.text, []);
 
-  // Format phone numbers and calculate distances
+  // Format phone numbers
   const processed = venues.map((venue: any) => {
     if (venue.phone) {
       venue.phone = formatPhoneNumber(venue.phone);
       venue.whatsapp = venue.phone;
     }
-    if (lat && lng && venue.lat && venue.lng && !venue.distance_meters) {
-      venue.distance_meters = calculateDistance(lat, lng, venue.lat, venue.lng);
-    }
     return venue;
   });
-
-  if (lat && lng) {
-    processed.sort((a: any, b: any) => (a.distance_meters || 999999) - (b.distance_meters || 999999));
-  }
 
   return processed;
 }
 
-// 3. ENRICH PROFILE - Enrich venue with Google Maps/Search data
+// 2. ENRICH PROFILE - Enrich venue with Google Search data
 async function handleEnrichProfile(payload: { name: string; address: string }) {
   const { name, address } = payload;
 
   const prompt = `Enrich the profile for "${name}" located at "${address}".
 
-Use Google Maps for accurate data and Google Search for additional information.
+Use Google Search for accurate information.
 
 Return as JSON object with:
 - website
@@ -367,11 +239,11 @@ Return as JSON object with:
 - popular_items (array)
 - atmosphere (description)
 - opening_hours_text
-- city (from Google Maps)
-- country (from Google Maps)`;
+- city
+- country`;
 
   const result = await callGemini(GEMINI_MODELS.text, prompt, {
-    tools: [{ googleMaps: {} }, { googleSearch: {} }],
+    tools: [{ googleSearch: {} }],
     temperature: 0.5,
     maxTokens: 2048,
   });
@@ -384,57 +256,20 @@ Return as JSON object with:
   return enriched;
 }
 
-// 4. ADAPT UI - Adapt UI to location
-async function handleAdapt(payload: { lat: number; lng: number }) {
-  const { lat, lng } = payload;
-
-  const prompt = `Based on coordinates (latitude: ${lat}, longitude: ${lng}), use Google Maps to determine:
-- cityName (e.g., "Kigali", "Paris", "New York")
-- country (e.g., "Rwanda", "France", "USA")
-- currencySymbol (e.g., "$", "€", "£", "RWF")
-- greeting (culturally appropriate, e.g., "Muraho" for Rwanda)
-
-Return as JSON object.`;
-
-  const result = await callGemini(GEMINI_MODELS.text, prompt, {
-    tools: [{ googleMaps: {} }],
-    toolConfig: {
-      retrievalConfig: {
-        latLng: { latitude: lat, longitude: lng },
-      },
-    },
-    temperature: 0.4,
-    maxTokens: 1024,
-  });
-
-  const parsed = parseJSON(result.text, {});
-  return {
-    cityName: parsed.cityName || "Your Area",
-    country: parsed.country || "",
-    greeting: parsed.greeting || "Welcome",
-    currencySymbol: parsed.currencySymbol || "$",
-    timezone: parsed.timezone,
-  };
-}
-
-// 5. GENERATE IMAGE - Generate images using Nano Banana Pro
+// 3. GENERATE IMAGE - Generate images using Nano Banana Pro
 async function handleGenerateImage(payload: {
   prompt: string;
   size?: "1K" | "2K" | "4K";
-  locationContext?: { city?: string; country?: string; lat?: number; lng?: number };
   referenceImages?: string[];
 }) {
-  const { prompt, locationContext, referenceImages } = payload;
+  const { prompt, referenceImages } = payload;
   const apiKey = Deno.env.get("GEMINI_API_KEY") || Deno.env.get("API_KEY");
   if (!apiKey) {
     throw new Error("GEMINI_API_KEY not configured");
   }
 
-  // Enhance prompt with location context
+  // Enhance prompt
   let enhancedPrompt = prompt;
-  if (locationContext?.country) {
-    enhancedPrompt += ` Location: ${locationContext.city || ''}${locationContext.city && locationContext.country ? ', ' : ''}${locationContext.country || ''}. IMPORTANT: The image must accurately represent local demographics and culture of ${locationContext.country}, not generic Western demographics.`;
-  }
 
   // Add reference images if provided
   const parts: any[] = [{ text: enhancedPrompt }];
@@ -492,7 +327,7 @@ async function handleGenerateImage(payload: {
   return null;
 }
 
-// 6. PARSE MENU - Parse menu from image
+// 4. PARSE MENU - Parse menu from image
 async function handleParseMenu(payload: { fileData: string; mimeType: string }) {
   const { fileData, mimeType } = payload;
 
@@ -515,7 +350,7 @@ Return as JSON array of menu items.`;
   return parseJSON(result.text, []);
 }
 
-// 7. SMART DESCRIPTION - Generate venue description
+// 5. SMART DESCRIPTION - Generate venue description
 async function handleSmartDescription(payload: { name: string; category: string }) {
   const { name, category } = payload;
 
@@ -580,7 +415,7 @@ Deno.serve(async (req) => {
     const { action, payload } = parsed.data;
 
     // Actions that can be called anonymously (public discovery)
-    const anonymousActions = ["discover", "adapt", "search"];
+    const anonymousActions = ["search"];
     const isAnonymousAllowed = anonymousActions.includes(action);
 
     const supabaseUrl = Deno.env.get("SUPABASE_URL") ?? "";
@@ -652,17 +487,11 @@ Deno.serve(async (req) => {
     let result: any;
 
     switch (action) {
-      case "discover":
-        result = await handleDiscover(validatedPayload);
-        break;
       case "search":
         result = await handleSearch(validatedPayload);
         break;
       case "enrich-profile":
         result = await handleEnrichProfile(validatedPayload);
-        break;
-      case "adapt":
-        result = await handleAdapt(validatedPayload);
         break;
       case "generate-image":
         result = await handleGenerateImage(validatedPayload);

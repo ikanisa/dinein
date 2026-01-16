@@ -200,19 +200,17 @@ Platform administrators.
 - `menu_items`: Read available items for active vendors
 - `tables`: Read active tables for QR scanning
 
-### Authenticated Users
+### Authenticated Users (Clients)
 - `orders`: Create own orders (via Edge Function), view own orders
 - `reservations`: Create/view own reservations
 
-### Vendor Staff
-- `orders`: View/update vendor orders
-- `menu_items`: Full CRUD for vendor items
-- `tables`: Full CRUD for vendor tables
-- `reservations`: View/update vendor reservations
-
-### Vendor Owners/Managers
-- `vendor_users`: Manage staff for their vendor
-- `vendors`: Update vendor profile
+### Managers (Bar/Restaurant)
+- `orders`: View/update venue orders
+- `menu_items`: Full CRUD for venue items
+- `tables`: Full CRUD for venue tables
+- `reservations`: View/update venue reservations
+- `vendor_users`: Manage team members
+- `vendors`: Update venue profile
 
 ### Admins
 - Full access to all tables
@@ -253,7 +251,6 @@ idx_reservations_vendor_datetime_status -- Calendar views
 | `tables_generate` | Generate table QR codes |
 | `vendor_claim` | Claim vendor ownership |
 | `gemini-features` | AI-powered features |
-| `nearby_places_live` | Google Places integration |
 
 ---
 

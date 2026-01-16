@@ -9,7 +9,7 @@
   <meta name="theme-color" content="#FFF7F2" media="(prefers-color-scheme: light)">
 
   <!-- PWA Settings -->
-  <link rel="manifest" href="/manifest.json" />
+
   <link rel="icon" href="/favicon.ico" />
   <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png" />
   <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png" />
@@ -24,14 +24,14 @@
   <!-- Supabase API preconnect (faster auth & data fetching) -->
   <link rel="preconnect" href="https://elhlcdiosomutugpneoc.supabase.co" crossorigin>
   <link rel="dns-prefetch" href="https://elhlcdiosomutugpneoc.supabase.co">
-  
+
   <!-- Font Loading Strategy: Optimized with system font fallback -->
   <!-- Preload critical font files for faster rendering -->
   <link rel="preload" as="font" type="font/woff2" crossorigin
     href="https://fonts.gstatic.com/s/manrope/v15/xn7_YHE41ni1AdIRqAuZuw1Bx9mbZk59FO_F87jxeN7B.woff2">
   <link rel="preload" as="font" type="font/woff2" crossorigin
     href="https://fonts.gstatic.com/s/fraunces/v31/6NUh8FyLNQOQZAnv9bYEvDiIdE9Ea92uemAk_qBnpz4H1jM.woff2">
-  
+
   <!-- Load font CSS with font-display: swap for better performance -->
   <link rel="stylesheet"
     href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,600;9..144,700&family=Manrope:wght@400;500;600;700&display=swap"
@@ -146,38 +146,8 @@
 
 <body>
   <div id="root"></div>
-  <script>
-      if ('serviceWorker' in navigator) {
-        window.addEventListener('load', () => {
-          navigator.serviceWorker.register('/sw.js')
-            .then(reg => {
-              console.log('SW registered');
-              
-              // Listen for service worker updates
-              reg.addEventListener('updatefound', () => {
-                const newWorker = reg.installing;
-                if (newWorker) {
-                  newWorker.addEventListener('statechange', () => {
-                    if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
-                      // New service worker available
-                      window.dispatchEvent(new CustomEvent('sw-update-available'));
-                    }
-                  });
-                }
-              });
-            })
-            .catch(err => console.log('SW registration failed', err));
-        });
-        
-        // Listen for messages from service worker
-        navigator.serviceWorker.addEventListener('message', (event) => {
-          if (event.data && event.data.type === 'SW_UPDATED') {
-            window.dispatchEvent(new CustomEvent('sw-update-available'));
-          }
-        });
-      }
-  </script>
   <script type="module" src="/index.tsx"></script>
+
 </body>
 
 </html>

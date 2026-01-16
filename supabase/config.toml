@@ -381,12 +381,6 @@ s3_access_key = "env(S3_ACCESS_KEY)"
 # Configures AWS_SECRET_ACCESS_KEY for S3 bucket
 s3_secret_key = "env(S3_SECRET_KEY)"
 
-[functions.nearby_places_live]
-enabled = true
-verify_jwt = false
-import_map = "./functions/nearby_places_live/deno.json"
-entrypoint = "./functions/nearby_places_live/index.ts"
-
 [functions.order_create]
 enabled = true
 verify_jwt = true
@@ -428,3 +422,9 @@ enabled = true
 verify_jwt = true
 import_map = "./functions/apply_migrations/deno.json"
 entrypoint = "./functions/apply_migrations/index.ts"
+
+[functions.admin_user_management]
+enabled = true
+verify_jwt = true
+import_map = "./functions/admin_user_management/deno.json"
+entrypoint = "./functions/admin_user_management/index.ts"

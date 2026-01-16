@@ -16,7 +16,7 @@ export const TodayStats: React.FC<TodayStatsProps> = ({
   return (
     <div className={`grid grid-cols-3 gap-4 ${className}`}>
       <div className="bg-surface-highlight rounded-xl p-4 border border-border">
-        <div className="text-xs text-muted uppercase tracking-wider mb-1">Today's Revenue</div>
+        <div className="text-xs text-muted uppercase tracking-wider mb-1">Today&apos;s Revenue</div>
         <div className="text-2xl font-bold text-green-500">€{revenue.toFixed(2)}</div>
       </div>
       <div className="bg-surface-highlight rounded-xl p-4 border border-border">

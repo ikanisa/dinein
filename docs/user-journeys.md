@@ -4,24 +4,21 @@
 
 ### Browse & Discover
 1. **Open App** → Anonymous session auto-initialized
-2. **Allow Location** → App requests location permission
-3. **Explore** → `/explore` shows nearby venues from Gemini/Google Maps
-4. **View Venue** → Tap venue card to see details
-5. **View Menu** → Tap "View Menu" → `/v/:vendorSlug` (only if vendor is active in DB)
+2. **Scan QR Code** → Opens `/v/:vendorSlug/t/:tableCode`
+3. **View Menu** → Direct access via link or QR
 
 ### Order Flow
-1. **Scan QR Code** → Opens `/v/:vendorSlug/t/:tableCode`
-2. **Browse Menu** → Add items to cart
-3. **Review Cart** → Check items, quantities, total
-4. **Place Order** → Creates order in DB with `client_auth_user_id` (anonymous session)
-5. **Order Confirmation** → Shows order code, estimated time
-6. **Payment** → 
+1. **Browse Menu** → Add items to cart
+2. **Review Cart** → Check items, quantities, total
+3. **Place Order** → Creates order in DB with `client_auth_user_id` (anonymous session)
+4. **Order Confirmation** → Shows order code, estimated time
+5. **Payment** → 
    - Option A: Revolut deep link (if vendor has `revolut_link`)
    - Option B: Cash on delivery
-7. **Track Order** → `/order/:id` shows status (received → served/cancelled)
+6. **Track Order** → `/order/:id` shows status (received → served/cancelled)
 
 ### Reservation Flow
-1. **Select Venue** → From explore or menu page
+1. **Select Venue** → From saved list or manual search
 2. **Make Reservation** → Choose date/time, party size
 3. **Submit** → Creates reservation with status `pending`
 4. **Vendor Response** → Vendor accepts/declines
@@ -78,14 +75,13 @@
 4. **Dashboard** → Redirects to `/admin/dashboard`
 
 ### Create Vendor
-1. **Discover Venue** → Use Gemini search in `/admin/vendors`
-2. **Select Place** → Choose from Google Maps results
-3. **Create Vendor** → 
-   - Name, address, coordinates from Google
+1. **Add Vendor** → Manual entry in `/admin/vendors`
+2. **Enter Details** → 
+   - Name, address
    - Set status: `pending` or `active`
    - Add contact info (phone, website, WhatsApp)
-4. **Save** → Creates vendor record in DB
-5. **Activate** → Change status to `active` when ready
+3. **Save** → Creates vendor record in DB
+4. **Activate** → Change status to `active` when ready
 
 ### Manage Vendor Users
 1. **View Vendors** → `/admin/vendors` shows all vendors
@@ -119,7 +115,7 @@
 
 ### Admin
 - Can access all routes
-- Can create vendors from Google Places
+- Can create vendors
 - Can assign vendor users
 - Can suspend vendors/users
 - Full system access
@@ -127,8 +123,6 @@
 ## Error States
 
 ### Client
-- **No Location** → Show manual search option
-- **No Vendors Found** → Show empty state with search
 - **Vendor Inactive** → Show "Coming soon" message
 - **Order Failed** → Show error, retry option
 - **Offline** → Queue orders, sync when online

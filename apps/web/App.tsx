@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { HashRouter as Router, Routes, Route, useNavigate, useLocation, Navigate } from 'react-router-dom';
+import { UserType } from './types';
 import { AnimatePresence, motion } from 'framer-motion';
 import { Toaster } from 'react-hot-toast';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
@@ -18,6 +19,7 @@ const LiveDashboard = lazy(() => import('./pages/vendor/LiveDashboard'));
 const MenuManagement = lazy(() => import('./pages/vendor/MenuManagement'));
 const HistoryAnalytics = lazy(() => import('./pages/vendor/HistoryAnalytics'));
 const VendorSettings = lazy(() => import('./pages/vendor/VendorSettings'));
+const BarOnboarding = lazy(() => import('./pages/BarOnboarding'));
 const AdminDashboard = lazy(() => import('./pages/AdminDashboard'));
 const AdminUsers = lazy(() => import('./pages/AdminUsers'));
 const AdminLogin = lazy(() => import('./pages/AdminLogin'));
@@ -299,6 +301,7 @@ const AnimatedRoutes = () => {
             {/* Public Client Routes - Simplified to 3 core routes */}
             <Route path="/" element={<RootRedirect />} />
             <Route path="/settings" element={<SettingsPage />} />
+            <Route path="/bar/onboard" element={<BarOnboarding />} />
             <Route path="/order/:id" element={<ClientOrderStatus />} />
             {/* QR codes should link directly to /v/:venueId/t/:tableCode */}
             <Route path="/v/:venueId" element={<ClientMenu />} />
@@ -309,52 +312,52 @@ const AnimatedRoutes = () => {
             <Route path="/menu/:venueId" element={<ClientMenu />} />
             <Route path="/menu/:venueId/t/:tableCode" element={<ClientMenu />} />
 
-            {/* Vendor Routes (Private) */}
-            <Route path="/vendor/login" element={<VendorLogin />} />
+            {/* Manager Routes (Private) - Bar/Restaurant Managers */}
+            <Route path="/manager/login" element={<VendorLogin />} />
             <Route
-              path="/vendor/live"
+              path="/manager/live"
               element={
-                <RequireAuth requiredRole="vendor">
+                <RequireAuth requiredRole={UserType.MANAGER}>
                   <LiveDashboard />
                 </RequireAuth>
               }
             />
             <Route
-              path="/vendor/menu"
+              path="/manager/menu"
               element={
-                <RequireAuth requiredRole="vendor">
+                <RequireAuth requiredRole={UserType.MANAGER}>
                   <MenuManagement />
                 </RequireAuth>
               }
             />
             <Route
-              path="/vendor/history"
+              path="/manager/history"
               element={
-                <RequireAuth requiredRole="vendor">
+                <RequireAuth requiredRole={UserType.MANAGER}>
                   <HistoryAnalytics />
                 </RequireAuth>
               }
             />
             <Route
-              path="/vendor/settings"
+              path="/manager/settings"
               element={
-                <RequireAuth requiredRole="vendor">
+                <RequireAuth requiredRole={UserType.MANAGER}>
                   <VendorSettings />
                 </RequireAuth>
               }
             />
             <Route
-              path="/vendor/dashboard"
+              path="/manager/dashboard"
               element={
-                <RequireAuth requiredRole="vendor">
-                  <Navigate to="/vendor/live" replace />
+                <RequireAuth requiredRole={UserType.MANAGER}>
+                  <Navigate to="/manager/live" replace />
                 </RequireAuth>
               }
             />
             <Route
-              path="/vendor/dashboard/:tab"
+              path="/manager/dashboard/:tab"
               element={
-                <RequireAuth requiredRole="vendor">
+                <RequireAuth requiredRole={UserType.MANAGER}>
                   <VendorDashboard />
                 </RequireAuth>
               }
@@ -365,7 +368,7 @@ const AnimatedRoutes = () => {
             <Route
               path="/admin/dashboard"
               element={
-                <RequireAuth requiredRole="admin">
+                <RequireAuth requiredRole={UserType.ADMIN}>
                   <AdminDashboard />
                 </RequireAuth>
               }
@@ -373,7 +376,7 @@ const AnimatedRoutes = () => {
             <Route
               path="/admin/vendors"
               element={
-                <RequireAuth requiredRole="admin">
+                <RequireAuth requiredRole={UserType.ADMIN}>
                   <AdminVendors />
                 </RequireAuth>
               }
@@ -381,7 +384,7 @@ const AnimatedRoutes = () => {
             <Route
               path="/admin/orders"
               element={
-                <RequireAuth requiredRole="admin">
+                <RequireAuth requiredRole={UserType.ADMIN}>
                   <AdminOrders />
                 </RequireAuth>
               }
@@ -389,7 +392,7 @@ const AnimatedRoutes = () => {
             <Route
               path="/admin/system"
               element={
-                <RequireAuth requiredRole="admin">
+                <RequireAuth requiredRole={UserType.ADMIN}>
                   <AdminSystem />
                 </RequireAuth>
               }
@@ -397,23 +400,24 @@ const AnimatedRoutes = () => {
             <Route
               path="/admin/users"
               element={
-                <RequireAuth requiredRole="admin">
+                <RequireAuth requiredRole={UserType.ADMIN}>
                   <AdminUsers />
                 </RequireAuth>
               }
             />
 
             {/* Legacy routes - redirect to new structure */}
-            <Route path="/vendor-login" element={<VendorLogin />} />
-            <Route path="/business" element={<VendorLogin />} />
+            <Route path="/vendor-login" element={<Navigate to="/manager/login" replace />} />
+            <Route path="/business" element={<Navigate to="/manager/login" replace />} />
+            <Route path="/staff/login" element={<Navigate to="/manager/login" replace />} />
             <Route path="/admin-login" element={<AdminLogin />} />
-            <Route path="/vendor-dashboard" element={<RequireAuth requiredRole="vendor"><VendorDashboard /></RequireAuth>} />
-            <Route path="/vendor-dashboard/:tab" element={<RequireAuth requiredRole="vendor"><VendorDashboard /></RequireAuth>} />
-            <Route path="/admin-dashboard" element={<RequireAuth requiredRole="admin"><AdminDashboard /></RequireAuth>} />
-            <Route path="/admin-vendors" element={<RequireAuth requiredRole="admin"><AdminVendors /></RequireAuth>} />
-            <Route path="/admin-orders" element={<RequireAuth requiredRole="admin"><AdminOrders /></RequireAuth>} />
-            <Route path="/admin-system" element={<RequireAuth requiredRole="admin"><AdminSystem /></RequireAuth>} />
-            <Route path="/admin-users" element={<RequireAuth requiredRole="admin"><AdminUsers /></RequireAuth>} />
+            <Route path="/vendor-dashboard" element={<RequireAuth requiredRole={UserType.MANAGER}><VendorDashboard /></RequireAuth>} />
+            <Route path="/vendor-dashboard/:tab" element={<RequireAuth requiredRole={UserType.MANAGER}><VendorDashboard /></RequireAuth>} />
+            <Route path="/admin-dashboard" element={<RequireAuth requiredRole={UserType.ADMIN}><AdminDashboard /></RequireAuth>} />
+            <Route path="/admin-vendors" element={<RequireAuth requiredRole={UserType.ADMIN}><AdminVendors /></RequireAuth>} />
+            <Route path="/admin-orders" element={<RequireAuth requiredRole={UserType.ADMIN}><AdminOrders /></RequireAuth>} />
+            <Route path="/admin-system" element={<RequireAuth requiredRole={UserType.ADMIN}><AdminSystem /></RequireAuth>} />
+            <Route path="/admin-users" element={<RequireAuth requiredRole={UserType.ADMIN}><AdminUsers /></RequireAuth>} />
 
             {/* Dev route removed - DeveloperSwitchboard deleted */}
           </Routes>
