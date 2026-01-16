@@ -55,35 +55,7 @@ const ClientOrderStatus = () => {
     }
   };
 
-  const getStatusColor = (status: OrderStatus) => {
-    switch (status) {
-      case OrderStatus.RECEIVED:
-        return 'text-secondary-600';
-      case OrderStatus.SERVED:
-        return 'text-green-500';
-      case OrderStatus.CANCELLED:
-        return 'text-red-500';
-      default:
-        return 'text-muted';
-    }
-  };
 
-  const getStatusIcon = (status: OrderStatus) => {
-    switch (status) {
-      case OrderStatus.RECEIVED:
-        return '⏳';
-      case OrderStatus.SERVED:
-        return '✅';
-      case OrderStatus.CANCELLED:
-        return '❌';
-      default:
-        return '📦';
-    }
-  };
-
-  const getPaymentStatusColor = (status: PaymentStatus) => {
-    return (status === PaymentStatus.PAID) ? 'text-green-500' : 'text-orange-500';
-  };
 
   if (loading) {
     return (

@@ -15,11 +15,16 @@ export const vendorKeys = {
  * Fetch all vendors with optional filtering
  */
 export function useVendors(filters?: { status?: string; search?: string }) {
-    return useQuery({
+    const query = useQuery({
         queryKey: vendorKeys.list(filters),
         queryFn: () => vendorsApi.getAll(filters),
         staleTime: 5 * 60 * 1000, // 5 minutes
     });
+
+    return {
+        ...query,
+        refetch: query.refetch
+    };
 }
 
 /**

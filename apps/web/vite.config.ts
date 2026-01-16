@@ -221,12 +221,12 @@ export default defineConfig(({ mode }) => {
       }),
     ],
     define: {
-      // GEMINI_API_KEY removed - Gemini AI no longer used in client
-      'process.env.VITE_GA_MEASUREMENT_ID': JSON.stringify(env.VITE_GA_MEASUREMENT_ID),
-      'process.env.VITE_SUPABASE_URL': JSON.stringify(env.VITE_SUPABASE_URL),
-      'process.env.VITE_SUPABASE_ANON_KEY': JSON.stringify(env.VITE_SUPABASE_ANON_KEY),
-      'process.env.VITE_SENTRY_DSN': JSON.stringify(env.VITE_SENTRY_DSN),
-      'process.env.VITE_SENTRY_TRACES_SAMPLE_RATE': JSON.stringify(env.VITE_SENTRY_TRACES_SAMPLE_RATE),
+      // Only define env vars if they have actual values to prevent "undefined" string injection
+      ...(env.VITE_GA_MEASUREMENT_ID && { 'process.env.VITE_GA_MEASUREMENT_ID': JSON.stringify(env.VITE_GA_MEASUREMENT_ID) }),
+      ...(env.VITE_SUPABASE_URL && { 'process.env.VITE_SUPABASE_URL': JSON.stringify(env.VITE_SUPABASE_URL) }),
+      ...(env.VITE_SUPABASE_ANON_KEY && { 'process.env.VITE_SUPABASE_ANON_KEY': JSON.stringify(env.VITE_SUPABASE_ANON_KEY) }),
+      ...(env.VITE_SENTRY_DSN && { 'process.env.VITE_SENTRY_DSN': JSON.stringify(env.VITE_SENTRY_DSN) }),
+      ...(env.VITE_SENTRY_TRACES_SAMPLE_RATE && { 'process.env.VITE_SENTRY_TRACES_SAMPLE_RATE': JSON.stringify(env.VITE_SENTRY_TRACES_SAMPLE_RATE) }),
     },
     resolve: {
       alias: {
