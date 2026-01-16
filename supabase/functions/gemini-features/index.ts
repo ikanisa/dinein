@@ -11,6 +11,7 @@ const corsHeaders = {
 const geminiRequestSchema = z.object({
   action: z.enum([
     "search",
+    "enrich-profile",
     "generate-image",
     "generate-asset",
     "parse-menu",
@@ -18,6 +19,7 @@ const geminiRequestSchema = z.object({
   ]),
   payload: z.record(z.unknown()).optional(),
 });
+
 
 const payloadSchemas = {
   search: z.object({
