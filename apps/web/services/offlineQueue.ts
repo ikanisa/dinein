@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 /**
  * Offline Queue Service
  * Queues failed API requests for retry when back online

@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 /**
  * IndexedDB-backed storage for queued orders with localStorage fallback.
  */

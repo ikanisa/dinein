@@ -13,7 +13,7 @@ test.describe('Manager Dashboard Interface', () => {
 
   test('redirects /manager/dashboard to /manager/live', async ({ page }) => {
     await page.goto('/#/manager/dashboard');
-    await page.waitForLoadState('networkidle');
+    await page.waitForLoadState('domcontentloaded');
     await page.waitForTimeout(2000);
 
     // Should redirect to live dashboard or login (if not authenticated)
@@ -23,7 +23,7 @@ test.describe('Manager Dashboard Interface', () => {
 
   test('live dashboard shows today stats or login required', async ({ page }) => {
     await page.goto('/#/manager/live');
-    await page.waitForLoadState('networkidle');
+    await page.waitForLoadState('domcontentloaded');
 
     // Page should load (even if redirects to login)
     const pageLoaded = await page.locator('body').isVisible();
@@ -32,7 +32,7 @@ test.describe('Manager Dashboard Interface', () => {
 
   test('live dashboard shows order queue or requires auth', async ({ page }) => {
     await page.goto('/#/manager/live');
-    await page.waitForLoadState('networkidle');
+    await page.waitForLoadState('domcontentloaded');
 
     const pageLoaded = await page.locator('body').isVisible();
     expect(pageLoaded).toBeTruthy();
@@ -40,7 +40,7 @@ test.describe('Manager Dashboard Interface', () => {
 
   test('menu management page loads', async ({ page }) => {
     await page.goto('/#/manager/menu');
-    await page.waitForLoadState('networkidle');
+    await page.waitForLoadState('domcontentloaded');
 
     const pageLoaded = await page.locator('body').isVisible();
     expect(pageLoaded).toBeTruthy();
@@ -48,7 +48,7 @@ test.describe('Manager Dashboard Interface', () => {
 
   test('menu item availability toggle area exists', async ({ page }) => {
     await page.goto('/#/manager/menu');
-    await page.waitForLoadState('networkidle');
+    await page.waitForLoadState('domcontentloaded');
 
     const pageLoaded = await page.locator('body').isVisible();
     expect(pageLoaded).toBeTruthy();
@@ -56,7 +56,7 @@ test.describe('Manager Dashboard Interface', () => {
 
   test('analytics page loads', async ({ page }) => {
     await page.goto('/#/manager/history');
-    await page.waitForLoadState('networkidle');
+    await page.waitForLoadState('domcontentloaded');
 
     const pageLoaded = await page.locator('body').isVisible();
     expect(pageLoaded).toBeTruthy();
@@ -64,7 +64,7 @@ test.describe('Manager Dashboard Interface', () => {
 
   test('settings page loads', async ({ page }) => {
     await page.goto('/#/manager/settings');
-    await page.waitForLoadState('networkidle');
+    await page.waitForLoadState('domcontentloaded');
 
     const pageLoaded = await page.locator('body').isVisible();
     expect(pageLoaded).toBeTruthy();
@@ -72,7 +72,7 @@ test.describe('Manager Dashboard Interface', () => {
 
   test('navigation between manager pages works', async ({ page }) => {
     await page.goto('/#/manager/live');
-    await page.waitForLoadState('networkidle');
+    await page.waitForLoadState('domcontentloaded');
 
     // The page loads correctly
     const pageLoaded = await page.locator('body').isVisible();
@@ -109,7 +109,7 @@ test.describe('Manager Dashboard Interface', () => {
 
   test('real-time connection indicator or login visible', async ({ page }) => {
     await page.goto('/#/manager/live');
-    await page.waitForLoadState('networkidle');
+    await page.waitForLoadState('domcontentloaded');
 
     const pageLoaded = await page.locator('body').isVisible();
     expect(pageLoaded).toBeTruthy();

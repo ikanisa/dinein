@@ -1,18 +1,21 @@
-# Task List: Remove Location Features
+# Task Checklist - Gemini AI Dine-In Enhancements
 
-## Planning
-- [x] Create Implementation Plan
-- [x] Identify files to delete
-
-## Execution
-- [x] Delete `apps/web/services/locationService.ts`
-- [x] Delete `apps/web/utils/location.ts`
-- [x] Delete `apps/web/__tests__/services/locationService.test.ts`
-- [x] Delete `supabase/functions/nearby_places_live` directory
-- [x] Refactor `supabase/functions/gemini-features/index.ts` to remove location logic
-- [x] Update `docs/user-journeys.md`
-
-## Verification
-- [x] Run `grep` to check for leftover reference
-- [x] Run `npm run typecheck`
-- [x] Run `npm run build`
+- [/] Kickoff & Planning
+    - [x] Analyze research and requirements
+    - [x] Create Implementation Plan
+    - [x] Establish Baseline (Schema, Function status)
+- [ ] Backend: Upgrade `gemini-features` Edge Function <!-- id: 0 -->
+    - [ ] Add `categorize-venue` action with Search/Maps grounding <!-- id: 1 -->
+    - [ ] Add `categorize-menu` action for dynamic grouping <!-- id: 2 -->
+    - [ ] Update input schemas and validation <!-- id: 3 -->
+    - [ ] Verify deployment to Supabase <!-- id: 4 -->
+- [ ] Frontend: Dynamic Categorization UI <!-- id: 5 -->
+    - [ ] Create `useAICategorization` hook with session caching <!-- id: 6 -->
+    - [ ] Create `CategoryBadges` component (UI + variants) <!-- id: 7 -->
+    - [ ] Integrate into `VenueDetails.tsx` header <!-- id: 8 -->
+    - [ ] Update `MenuGrid.tsx` to support smart grouping <!-- id: 9 -->
+- [ ] Verification & Polish <!-- id: 10 -->
+    - [ ] Verify AI latency handling (skeletons/loading states) <!-- id: 11 -->
+    - [ ] Manual test of Venue categorization <!-- id: 12 -->
+    - [ ] Manual test of Menu smart grouping <!-- id: 13 -->
+    - [ ] Audit for cost/rate-limiting correctness <!-- id: 14 -->

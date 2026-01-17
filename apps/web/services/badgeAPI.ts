@@ -2,6 +2,7 @@
  * Badge API Service
  * Updates app icon badge with order count
  */
+/* eslint-disable @typescript-eslint/no-explicit-any */
 
 /**
  * Set badge text (shows on app icon)

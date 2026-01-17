@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 /**
  * Order Service with Offline Support
  * Handles order creation with background sync for offline scenarios

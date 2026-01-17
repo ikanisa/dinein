@@ -1,12 +1,45 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { z } from "https://deno.land/x/zod@v3.22.4/mod.ts";
+import {
+  handleCors,
+  jsonResponse,
+  errorResponse,
+  createAdminClient,
+  optionalAuth,
+  createLogger,
+  getOrCreateRequestId,
+  corsHeaders,
+  RateLimitConfig,
+} from "../_lib/mod.ts";
 
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
-  "Access-Control-Allow-Methods": "POST, OPTIONS",
-};
+/**
+ * Sanitize text input to prevent XSS and injection attacks
+ */
+function sanitizeText(text: string, maxLength = 10000): string {
+  if (!text) return text;
+  // Truncate to max length
+  let sanitized = text.slice(0, maxLength);
+  // Remove potential script tags and HTML entities that could be malicious
+  sanitized = sanitized.replace(/<script[^>]*>.*?<\/script>/gi, '');
+  sanitized = sanitized.replace(/<[^>]+>/g, '');
+  // Normalize whitespace
+  sanitized = sanitized.replace(/[\x00-\x08\x0B\x0C\x0E-\x1F]/g, '');
+  return sanitized.trim();
+}
+
+/**
+ * Mask sensitive data in error messages to prevent leakage
+ */
+function maskSensitiveError(error: unknown): string {
+  const message = error instanceof Error ? error.message : String(error);
+  // Mask API keys, tokens, etc.
+  return message
+    .replace(/key=[^&\s]+/gi, 'key=[MASKED]')
+    .replace(/bearer\s+[^\s]+/gi, 'Bearer [MASKED]')
+    .replace(/password["':\s]*[^"',\s]+/gi, 'password=[MASKED]')
+    .slice(0, 500);
+}
 
 const geminiRequestSchema = z.object({
   action: z.enum([
@@ -16,6 +49,8 @@ const geminiRequestSchema = z.object({
     "generate-asset",
     "parse-menu",
     "smart-description",
+    "categorize-venue",
+    "categorize-menu",
   ]),
   payload: z.record(z.unknown()).optional(),
 });
@@ -48,15 +83,23 @@ const payloadSchemas = {
     table: z.enum(["vendors", "menu_items"]),
     column: z.string().default("ai_image_url"),
   }),
+  "categorize-venue": z.object({
+    name: z.string().min(1),
+    address: z.string().min(1),
+    description: z.string().optional(),
+  }),
+  "categorize-menu": z.object({
+    items: z.array(z.object({
+      id: z.string().optional(),
+      name: z.string().min(1),
+      description: z.string().optional(),
+    })).min(1),
+    venueName: z.string().optional(),
+  }),
 } as const;
 
 type GeminiAction = z.infer<typeof geminiRequestSchema>["action"];
 
-const RATE_LIMIT = {
-  maxRequests: 30,
-  window: "1 hour",
-  endpointPrefix: "gemini",
-};
 
 // Gemini API Configuration
 const GEMINI_API_URL = "https://generativelanguage.googleapis.com/v1beta";
@@ -437,29 +480,88 @@ async function handleGenerateAsset(payload: {
   return { success: true, url: publicUrl };
 }
 
+// 7. CATEGORIZE VENUE - AI categorization using Maps/Search grounding
+async function handleCategorizeVenue(payload: { name: string; address: string; description?: string }) {
+  const { name, address, description } = payload;
+
+  const prompt = `Analyze the venue "${name}" located at "${address}".
+${description ? `Description context: ${description}` : ""}
+
+Using Google Search/Maps data, provide categorical tags for this venue.
+Return JSON with:
+- primary_category (e.g., Italian, Sports Bar, Cafe)
+- cuisine_types (array of strings)
+- ambiance_tags (array of strings, e.g., "Romantic", "Lively")
+- price_range ($, $$, $$$, or $$$$)
+- highlights (array of strings, e.g., "Outdoor Seating", "Live Music")
+- dietary_friendly (array of strings, e.g., "Vegetarian", "Vegan Options")`;
+
+  const result = await callGemini(GEMINI_MODELS.text, prompt, {
+    tools: [{ googleSearch: {} }],
+    temperature: 0.4,
+    maxTokens: 1000,
+  });
+
+  return parseJSON(result.text, {});
+}
+
+// 8. CATEGORIZE MENU - Dynamic menu item grouping and tagging
+async function handleCategorizeMenu(payload: { items: any[]; venueName?: string }) {
+  const { items, venueName } = payload;
+
+  // Process in chunks to avoid context limits if necessary, but for now assuming reasonable size
+  // Minimal payload to save tokens
+  const itemsLite = items.map(i => ({ id: i.id, name: i.name, desc: i.description }));
+
+  const prompt = `Categorize these menu items for ${venueName || "the venue"}.
+
+Items: ${JSON.stringify(itemsLite)}
+
+For each item, provide:
+1. dietary_tags (e.g., Vegetarian, Vegan, GF, Spicy)
+2. flavor_profile (e.g., Savory, Sweet, Sour)
+3. smart_category (A broad group: Appetizer, Main, Dessert, Drink, or Side)
+
+Return a JSON Object where keys are the item IDs (or names if ID missing) and values are the classification objects.`;
+
+  const result = await callGemini(GEMINI_MODELS.text, prompt, {
+    temperature: 0.3,
+    maxTokens: 4096,
+  });
+
+  return parseJSON(result.text, {});
+}
+
 // ============================================================================
 // MAIN HANDLER
 // ============================================================================
 
+const RATE_LIMIT: RateLimitConfig = {
+  maxRequests: 30,
+  window: "1 hour",
+  endpoint: "gemini_features",
+};
+
 Deno.serve(async (req) => {
-  if (req.method === "OPTIONS") {
-    return new Response("ok", { headers: corsHeaders });
-  }
+  const startTime = Date.now();
+  const requestId = getOrCreateRequestId(req);
+  const logger = createLogger({ requestId, action: "gemini-features" });
+
+  // Handle CORS preflight
+  const corsResponse = handleCors(req);
+  if (corsResponse) return corsResponse;
 
   if (req.method !== "POST") {
-    return new Response(
-      JSON.stringify({ error: "Method not allowed" }),
-      { status: 405, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-    );
+    return errorResponse("Method not allowed", 405);
   }
 
   try {
+    logger.requestStart(req.method, "/gemini-features");
+
     const apiKey = Deno.env.get("GEMINI_API_KEY") || Deno.env.get("API_KEY");
     if (!apiKey) {
-      return new Response(
-        JSON.stringify({ error: "GEMINI_API_KEY not configured" }),
-        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
+      logger.error("GEMINI_API_KEY not configured");
+      return errorResponse("AI service not configured", 500);
     }
 
     // Parse body first to determine action
@@ -467,90 +569,76 @@ Deno.serve(async (req) => {
     try {
       body = await req.json();
     } catch {
-      return new Response(
-        JSON.stringify({ error: "Invalid JSON body" }),
-        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
+      logger.warn("Invalid JSON body received");
+      return errorResponse("Invalid JSON body", 400);
     }
 
     const parsed = geminiRequestSchema.safeParse(body);
     if (!parsed.success) {
-      return new Response(
-        JSON.stringify({ error: "Invalid request data", details: parsed.error.issues }),
-        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
+      logger.warn("Validation failed", { errors: parsed.error.issues });
+      return errorResponse("Invalid request data", 400, parsed.error.issues);
     }
 
     const { action, payload } = parsed.data;
+    logger.info("Processing action", { action });
 
     // Actions that can be called anonymously (public discovery)
     const anonymousActions = ["search"];
     const isAnonymousAllowed = anonymousActions.includes(action);
 
+    // Use shared admin client
+    const supabaseAdmin = createAdminClient();
     const supabaseUrl = Deno.env.get("SUPABASE_URL") ?? "";
     const supabaseAnonKey = Deno.env.get("SUPABASE_ANON_KEY") ?? "";
-    const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "";
-    if (!supabaseUrl || !supabaseAnonKey || !supabaseServiceKey) {
-      return new Response(
-        JSON.stringify({ error: "Supabase environment variables missing" }),
-        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
+    if (!supabaseUrl || !supabaseAnonKey) {
+      logger.error("Supabase environment variables missing");
+      return errorResponse("Backend service not configured", 500);
     }
 
-    // Check auth for non-anonymous actions
-    const authHeader = req.headers.get("Authorization");
-    let user: { id: string } | null = null;
-
-    if (authHeader) {
-      const supabaseUser = createClient(
-        supabaseUrl,
-        supabaseAnonKey,
-        { global: { headers: { Authorization: authHeader } } }
-      );
-      const { data, error: userError } = await supabaseUser.auth.getUser();
-      if (!userError && data.user) {
-        user = { id: data.user.id };
-      }
-    }
+    // Use optional auth for flexibility
+    const authResult = await optionalAuth(req, logger);
+    const user = authResult?.user ?? null;
 
     // Require auth for non-anonymous actions
     if (!isAnonymousAllowed && !user) {
-      return new Response(
-        JSON.stringify({ error: "Unauthorized" }),
-        { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
+      logger.warn("Unauthorized access attempt", { action });
+      return errorResponse("Unauthorized", 401);
     }
-
-    const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey);
 
     const payloadSchema = payloadSchemas[action as GeminiAction];
     const payloadParsed = payloadSchema.safeParse(payload ?? {});
     if (!payloadParsed.success) {
-      return new Response(
-        JSON.stringify({ error: "Invalid payload", details: payloadParsed.error.issues }),
-        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
+      logger.warn("Payload validation failed", { action, errors: payloadParsed.error.issues });
+      return errorResponse("Invalid payload", 400, payloadParsed.error.issues);
     }
 
-    const validatedPayload = payloadParsed.data;
+    // Sanitize text inputs in payload
+    const validatedPayload = { ...payloadParsed.data };
+    if ('query' in validatedPayload && typeof validatedPayload.query === 'string') {
+      validatedPayload.query = sanitizeText(validatedPayload.query, 1000);
+    }
+    if ('prompt' in validatedPayload && typeof validatedPayload.prompt === 'string') {
+      validatedPayload.prompt = sanitizeText(validatedPayload.prompt, 5000);
+    }
+    if ('name' in validatedPayload && typeof validatedPayload.name === 'string') {
+      validatedPayload.name = sanitizeText(validatedPayload.name, 500);
+    }
 
     // Rate limiting (use IP for anonymous, user ID for authenticated)
     const rateLimitId = user?.id || req.headers.get("cf-connecting-ip") || "anonymous";
     const { data: allowed, error: rateLimitError } = await supabaseAdmin.rpc("check_rate_limit", {
       p_user_id: rateLimitId,
-      p_endpoint: `${RATE_LIMIT.endpointPrefix}_${action}`,
+      p_endpoint: `${RATE_LIMIT.endpoint}_${action}`,
       p_limit: isAnonymousAllowed && !user ? 10 : RATE_LIMIT.maxRequests, // Lower limit for anonymous
       p_window: RATE_LIMIT.window,
     });
 
     if (rateLimitError) {
-      console.error("Rate limit check failed:", rateLimitError);
+      logger.error("Rate limit check failed", { error: rateLimitError.message });
       // Don't block on rate limit errors - log and continue
     } else if (!allowed) {
-      return new Response(
-        JSON.stringify({ error: "Too many requests. Please try again later." }),
-        { status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
+      logger.warn("Rate limit exceeded", { userId: rateLimitId, action });
+      return errorResponse("Too many requests. Please try again later.", 429);
     }
 
     let result: any;
@@ -574,6 +662,12 @@ Deno.serve(async (req) => {
       case "generate-asset":
         result = await handleGenerateAsset(validatedPayload);
         break;
+      case "categorize-venue":
+        result = await handleCategorizeVenue(validatedPayload);
+        break;
+      case "categorize-menu":
+        result = await handleCategorizeMenu(validatedPayload);
+        break;
       default:
         return new Response(
           JSON.stringify({ error: `Unknown action: ${action}` }),
@@ -581,24 +675,14 @@ Deno.serve(async (req) => {
         );
     }
 
-    return new Response(
-      JSON.stringify(result),
-      {
-        status: 200,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      }
-    );
+    const durationMs = Date.now() - startTime;
+    logger.requestEnd(200, durationMs);
+
+    return jsonResponse({ success: true, requestId, data: result });
   } catch (error) {
-    console.error("Gemini function error:", error);
-    return new Response(
-      JSON.stringify({
-        error: "Internal server error",
-        details: error instanceof Error ? error.message : String(error),
-      }),
-      {
-        status: 500,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      }
-    );
+    const durationMs = Date.now() - startTime;
+    const maskedError = maskSensitiveError(error);
+    logger.error("Gemini function error", { error: maskedError, durationMs });
+    return errorResponse("Internal server error", 500, maskedError);
   }
 });

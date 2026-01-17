@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { GlassCard } from '../components/GlassCard';
 import { Spinner } from '../components/Loading';
@@ -15,25 +15,7 @@ const ClientOrderStatus = () => {
   const [loading, setLoading] = useState(true);
   const [polling, setPolling] = useState(true);
 
-  useEffect(() => {
-    if (!id) {
-      navigate('/');
-      return;
-    }
-
-    loadOrder();
-
-    // Poll for order updates every 10 seconds if order is active
-    const pollInterval = setInterval(() => {
-      if (polling && order && order.status !== OrderStatus.SERVED && order.status !== OrderStatus.CANCELLED) {
-        loadOrder();
-      }
-    }, 10000);
-
-    return () => clearInterval(pollInterval);
-  }, [id, polling, order?.status]);
-
-  const loadOrder = async () => {
+  const loadOrder = useCallback(async () => {
     if (!id) return;
 
     try {
@@ -54,7 +36,25 @@ const ClientOrderStatus = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [id, navigate]);
+
+  useEffect(() => {
+    if (!id) {
+      navigate('/');
+      return;
+    }
+
+    loadOrder();
+
+    // Poll for order updates every 10 seconds if order is active
+    const pollInterval = setInterval(() => {
+      if (polling && order && order.status !== OrderStatus.SERVED && order.status !== OrderStatus.CANCELLED) {
+        loadOrder();
+      }
+    }, 10000);
+
+    return () => clearInterval(pollInterval);
+  }, [id, polling, order, navigate, loadOrder]);
 
 
 

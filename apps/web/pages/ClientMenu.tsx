@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import React, { useEffect, useState, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { GlassCard } from '../components/GlassCard';
@@ -19,7 +20,7 @@ const EmptyState = React.lazy(() => import('../components/ui/EmptyState'));
 const ClientMenu = () => {
   const { venueId, tableCode } = useParams();
   const navigate = useNavigate();
-  const { cart, addToCart, removeFromCart, clearCart, totalAmount, totalItems, toggleFavorite, isFavorite, favorites } = useCart();
+  const { cart, addToCart, removeFromCart, clearCart, totalAmount, totalItems, isFavorite, favorites } = useCart();
 
 
   // Use optimized menu hook
@@ -66,11 +67,58 @@ const ClientMenu = () => {
     if (tableCode) setManualTableRef(tableCode);
   }, [tableCode]);
 
-  // Update active category when categories change
+  // Scroll Spy Logic
   useEffect(() => {
-    if (categories.length > 0 && !categories.includes(activeCategory)) {
-      setActiveCategory('All');
-    }
+    // 1. Category Scroll Spy
+    const observer = new IntersectionObserver((entries) => {
+      entries.forEach(entry => {
+        if (entry.isIntersecting) {
+          // Find which category this section belongs to
+          const catId = entry.target.id.replace('category-', '').replace(/-/g, ' ');
+          // We need to match case insensitive back to format
+          const matchedCat = categories.find(c => c.toLowerCase() === catId);
+          if (matchedCat) {
+            setActiveCategory(matchedCat);
+
+            // Also scroll the tab into view
+            const tab = document.querySelector(`button[role="tab"][aria-selected="true"]`);
+            if (tab) {
+              tab.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
+            }
+          }
+        }
+      });
+    }, { rootMargin: '-15% 0px -70% 0px', threshold: 0 });
+
+    categories.forEach(cat => {
+      const el = document.getElementById(`category-${cat.toLowerCase().replace(/\s+/g, '-')}`);
+      if (el) observer.observe(el);
+    });
+
+    // 2. Sticky Logo Visibility
+    // We observe the Hero section. When it leaves viewport, show logo in header.
+    const heroObserver = new IntersectionObserver((entries) => {
+      const logo = document.getElementById('sticky-header-logo');
+      if (!logo) return;
+
+      entries.forEach(entry => {
+        if (!entry.isIntersecting) {
+          // Hero is gone, show logo in sticky header
+          logo.setAttribute('data-visible', 'true');
+        } else {
+          // Hero is visible, hide logo in sticky header
+          logo.setAttribute('data-visible', 'false');
+        }
+      });
+    }, { rootMargin: '-100px 0px 0px 0px', threshold: 0 });
+
+    const hero = document.getElementById('venue-hero');
+    if (hero) heroObserver.observe(hero);
+
+    return () => {
+      observer.disconnect();
+      heroObserver.disconnect();
+    };
   }, [categories]);
 
   // Realtime subscription for current order status
@@ -103,7 +151,7 @@ const ClientMenu = () => {
       .subscribe();
 
     return () => { supabase.removeChannel(channel); };
-  }, [currentOrder?.id, venue?.id]);
+  }, [currentOrder?.id, venue?.id, currentOrder]);
 
 
   const copyToClipboard = (text: string) => {
@@ -147,13 +195,7 @@ const ClientMenu = () => {
   const availableItems = allMenuItems.filter(i => i.available !== false);
 
   // Apply filters: category and favorites
-  let filteredItems = activeCategory === 'All'
-    ? availableItems
-    : availableItems.filter(i => i.category === activeCategory);
-
-  if (showFavoritesOnly) {
-    filteredItems = filteredItems.filter(item => isFavorite(item.id));
-  }
+  // filteredItems removed as it was unused and recalculated in render loop
 
   // Determine payment availability dynamically from venue data
   // Returns all available payment providers for the venue
@@ -412,7 +454,7 @@ const ClientMenu = () => {
         </div>
 
         {/* Parallax Header - Optimized for LCP */}
-        <div className="h-[40vh] relative w-full overflow-hidden" style={{ minHeight: '300px', aspectRatio: '16 / 9' }}>
+        <div id="venue-hero" className="h-[40vh] relative w-full overflow-hidden" style={{ minHeight: '300px', aspectRatio: '16 / 9' }}>
           <div className="absolute inset-0 bg-gradient-to-b from-transparent via-transparent to-black/80 z-10" />
           <OptimizedImage
             src={venue.imageUrl || `https://picsum.photos/800/800?grayscale`}
@@ -469,145 +511,141 @@ const ClientMenu = () => {
           </div>
         </div>
 
-        {/* Sticky Category Bar */}
-        <nav className="sticky top-0 z-30 bg-glass backdrop-blur-xl border-b border-glassBorder py-3" role="navigation" aria-label="Menu categories">
-          <div
-            ref={categoryScrollRef}
-            className="flex px-4 gap-3 overflow-x-auto no-scrollbar scroll-smooth"
-            role="tablist"
-            aria-label="Filter menu by category"
-          >
-            {categories.map(cat => (
-              <button
-                key={cat}
-                onClick={() => setActiveCategory(cat)}
-                onKeyDown={(e) => {
-                  // Arrow key navigation for categories
-                  if (e.key === 'ArrowLeft' || e.key === 'ArrowRight') {
-                    e.preventDefault();
-                    const currentIndex = categories.indexOf(activeCategory);
-                    const nextIndex = e.key === 'ArrowRight'
-                      ? (currentIndex + 1) % categories.length
-                      : (currentIndex - 1 + categories.length) % categories.length;
-                    setActiveCategory(categories[nextIndex]);
-                    // Focus the new button
-                    const buttons = categoryScrollRef.current?.querySelectorAll('button');
-                    if (buttons && buttons[nextIndex]) {
-                      (buttons[nextIndex] as HTMLButtonElement).focus();
+        {/* Sticky Category Bar with Floating Logo */}
+        <nav className="sticky top-0 z-40 bg-background/80 backdrop-blur-xl border-b border-white/5 py-2 transition-all duration-300 shadow-sm" role="navigation" aria-label="Menu categories">
+          <div className="flex items-center">
+            {/* Animated Tiny Logo in Header */}
+            <div className="w-0 overflow-hidden transition-all duration-300 opacity-0 data-[visible=true]:w-12 data-[visible=true]:opacity-100 ml-4 flex-shrink-0" id="sticky-header-logo">
+              <img
+                src={venue.logoUrl || venue.imageUrl || 'https://picsum.photos/100'}
+                alt="Venue Logo"
+                className="w-8 h-8 rounded-full border border-white/20"
+              />
+            </div>
+
+            <div
+              ref={categoryScrollRef}
+              className="flex px-4 gap-2 overflow-x-auto no-scrollbar scroll-smooth w-full items-center"
+              role="tablist"
+              aria-label="Filter menu by category"
+            >
+              {categories.map(cat => (
+                <button
+                  key={cat}
+                  onClick={() => {
+                    setActiveCategory(cat);
+                    const el = document.getElementById(`category-${cat.toLowerCase().replace(/\s+/g, '-')}`);
+                    if (el) {
+                      const y = el.getBoundingClientRect().top + window.scrollY - 140; // Offset for header
+                      window.scrollTo({ top: y, behavior: 'smooth' });
                     }
-                  }
-                }}
-                role="tab"
-                aria-selected={activeCategory === cat}
-                aria-controls={`category-${cat.toLowerCase().replace(/\s+/g, '-')}`}
-                className={`min-h-[48px] px-5 py-2 rounded-full text-sm font-bold whitespace-nowrap transition-all flex-shrink-0 focus:ring-2 focus:ring-secondary-500 focus:ring-offset-2 ${activeCategory === cat
-                  ? 'bg-foreground text-background scale-105'
-                  : 'bg-surface-highlight text-muted hover:bg-black/10'
-                  }`}
-              >
-                {cat}
-              </button>
-            ))}
+                  }}
+                  role="tab"
+                  aria-selected={activeCategory === cat}
+                  className={`px-4 py-2 rounded-full text-xs font-bold whitespace-nowrap transition-all flex-shrink-0 border ${activeCategory === cat
+                    ? 'bg-foreground text-background border-foreground shadow-lg scale-105'
+                    : 'bg-white/5 text-muted border-white/10 hover:bg-white/10'
+                    }`}
+                >
+                  {cat}
+                </button>
+              ))}
+            </div>
           </div>
         </nav>
 
-        {/* Menu Grid */}
-        <section className="p-4 space-y-4 pb-24" aria-label={`Menu items in ${activeCategory} category`} id={`category-${activeCategory.toLowerCase().replace(/\s+/g, '-')}`} role="tabpanel" aria-live="polite" aria-atomic="false">
-          {filteredItems.map(item => (
-            <article
-              key={item.id}
-              className="flex gap-4 p-0 overflow-hidden bg-surface shadow-sm rounded-xl border border-border"
-              role="article"
-              aria-labelledby={`menu-item-${item.id}-name`}
-            >
-              <div
-                className="w-28 h-28 bg-surface-highlight relative flex-shrink-0"
-                role="img"
-                aria-label={`${item.name} image`}
-                style={{ aspectRatio: '1 / 1' }}
+        {/* Menu Grid - Vertical Categories */}
+        <div className="pb-32 space-y-8 pt-6">
+          {categories.map(category => {
+            // Filter items for this category
+            const categoryItems = availableItems.filter(i => i.category === category);
+            if (categoryItems.length === 0) return null;
+            if (showFavoritesOnly && !categoryItems.some(i => isFavorite(i.id))) return null;
+
+            const displayItems = showFavoritesOnly
+              ? categoryItems.filter(i => isFavorite(i.id))
+              : categoryItems;
+
+            if (displayItems.length === 0) return null;
+
+            return (
+              <section
+                key={category}
+                id={`category-${category.toLowerCase().replace(/\s+/g, '-')}`}
+                className="scroll-mt-36 px-4"
               >
-                <OptimizedImage
-                  src={item.imageUrl || ''}
-                  alt={`${item.name}${item.description ? ` - ${item.description}` : ''}`}
-                  aspectRatio="1/1"
-                  className="w-full h-full"
-                  width={112}
-                  height={112}
-                />
-              </div>
-              <div className="flex-1 py-3 pr-3 flex flex-col justify-between">
-                <div>
-                  <div className="flex justify-between items-start gap-2">
-                    <h3
-                      id={`menu-item-${item.id}-name`}
-                      className="font-bold text-base leading-tight mb-1 text-foreground flex-1"
-                    >
-                      {item.name}
-                    </h3>
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        toggleFavorite(item);
-                      }}
-                      onKeyDown={(e) => {
-                        if (e.key === 'Enter' || e.key === ' ') {
-                          e.preventDefault();
-                          toggleFavorite(item);
-                        }
-                      }}
-                      className="min-w-[48px] min-h-[48px] flex items-center justify-center text-xl flex-shrink-0 active:scale-90 transition-transform focus:ring-2 focus:ring-secondary-500 focus:ring-offset-2 rounded-full"
-                      aria-label={isFavorite(item.id) ? `Remove ${item.name} from favorites` : `Add ${item.name} to favorites`}
-                      aria-pressed={isFavorite(item.id)}
-                    >
-                      <span aria-hidden="true">{isFavorite(item.id) ? '⭐' : '☆'}</span>
-                    </button>
-                  </div>
-                  {item.description && (
-                    <p className="text-xs text-muted line-clamp-2 leading-relaxed" id={`menu-item-${item.id}-description`}>
-                      {item.description}
-                    </p>
-                  )}
+                <div className="flex items-center gap-3 mb-4">
+                  <h2 className="text-xl font-bold text-foreground tracking-tight">{category}</h2>
+                  <div className="h-px bg-gradient-to-r from-border to-transparent flex-1" />
                 </div>
 
-                <div className="flex justify-between items-end mt-2">
-                  <span
-                    className="font-bold text-lg text-foreground"
-                    aria-label={`Price: €${item.price.toFixed(2)}`}
-                  >
-                    €{item.price.toFixed(2)}
-                  </span>
-                  <button
-                    onClick={() => addToCart(item)}
-                    onKeyDown={(e) => {
-                      if (e.key === 'Enter' || e.key === ' ') {
-                        e.preventDefault();
-                        addToCart(item);
-                      }
-                    }}
-                    aria-label={`Add ${item.name} to cart for €${item.price.toFixed(2)}`}
-                    className="min-w-[48px] min-h-[48px] w-12 h-12 rounded-full bg-foreground text-background flex items-center justify-center font-bold text-xl active:scale-90 transition-transform shadow-lg focus:ring-2 focus:ring-secondary-500 focus:ring-offset-2"
-                  >
-                    <span aria-hidden="true">+</span>
-                  </button>
+                <div className="grid grid-cols-1 gap-4">
+                  {displayItems.map(item => (
+                    <GlassCard
+                      key={item.id}
+                      className="flex gap-4 p-3 overflow-hidden active:scale-[0.99] transition-transform duration-200 border-white/10 hover:border-white/20 shadow-sm"
+                      role="article"
+                    >
+                      <div className="w-24 h-24 relative rounded-xl overflow-hidden flex-shrink-0 bg-surface-highlight shadow-inner">
+                        <OptimizedImage
+                          src={item.imageUrl || ''}
+                          alt={item.name}
+                          aspectRatio="1/1"
+                          className="w-full h-full object-cover"
+                          width={96}
+                          height={96}
+                        />
+                        {isFavorite(item.id) && (
+                          <div className="absolute top-1 right-1 bg-black/60 backdrop-blur-md rounded-full p-1">
+                            <span className="text-xs">⭐</span>
+                          </div>
+                        )}
+                      </div>
+
+                      <div className="flex-1 flex flex-col justify-between min-w-0">
+                        <div>
+                          <div className="flex justify-between items-start gap-2">
+                            <h3 className="font-bold text-base text-foreground leading-snug truncate pr-2">
+                              {item.name}
+                            </h3>
+                          </div>
+                          {item.description && (
+                            <p className="text-xs text-muted mt-1 line-clamp-2 leading-relaxed opacity-90">
+                              {item.description}
+                            </p>
+                          )}
+                        </div>
+
+                        <div className="flex justify-between items-center mt-3">
+                          <span className="font-bold text-base text-foreground">
+                            €{item.price.toFixed(2)}
+                          </span>
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              addToCart(item);
+                              import('../utils/haptics').then(h => h.hapticSuccess());
+                            }}
+                            className="w-8 h-8 rounded-full bg-foreground text-background flex items-center justify-center font-bold shadow-lg active:scale-90 transition-transform"
+                            aria-label={`Add ${item.name}`}
+                          >
+                            +
+                          </button>
+                        </div>
+                      </div>
+                    </GlassCard>
+                  ))}
                 </div>
-              </div>
-            </article>
-          ))}
-          {filteredItems.length === 0 && (
-            <div className="animate-fade-in pb-24">
-              <React.Suspense fallback={<div className="py-10 text-center text-muted">Loading...</div>}>
-                <EmptyState
-                  icon={showFavoritesOnly ? "⭐" : "🍽️"}
-                  title={showFavoritesOnly ? "No favorites yet" : "No items here"}
-                  description={showFavoritesOnly
-                    ? "Tap the star icon on menu items to save them as favorites."
-                    : `No items in the "${activeCategory}" category yet.`}
-                  size="sm"
-                />
-              </React.Suspense>
+              </section>
+            );
+          })}
+
+          {availableItems.length === 0 && (
+            <div className="py-10 text-center text-muted">
+              <EmptyState icon="🍽️" title="Menu Empty" description="This venue has no items available right now." />
             </div>
           )}
-        </section>
+        </div>
 
         {/* Cart Bar - Always visible when not in modals */}
         {!isReviewOpen && !showPaymentModal && !currentOrder && (

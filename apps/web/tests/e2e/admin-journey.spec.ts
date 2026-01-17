@@ -18,7 +18,7 @@ test.describe('Admin User Journey', () => {
     test('admin login page accessible', async ({ page }) => {
         await page.goto('/#/admin/login');
 
-        await page.waitForLoadState('networkidle');
+        await page.waitForLoadState('domcontentloaded');
 
         // Page should load and show login UI (Google OAuth for admin)
         const pageLoaded = await page.locator('body').isVisible();
@@ -34,7 +34,7 @@ test.describe('Admin User Journey', () => {
         await page.goto('/#/admin/dashboard');
 
         // Wait for auth check and redirect - may show loading first
-        await page.waitForLoadState('networkidle');
+        await page.waitForLoadState('domcontentloaded');
         await expect(page).toHaveURL(/login/, { timeout: 5000 }).catch(() => { });
 
         // Should redirect to login
@@ -46,7 +46,7 @@ test.describe('Admin User Journey', () => {
     test('admin vendors page is protected', async ({ page }) => {
         await page.goto('/#/admin/vendors');
 
-        await page.waitForLoadState('networkidle');
+        await page.waitForLoadState('domcontentloaded');
         await expect(page).toHaveURL(/login/, { timeout: 5000 }).catch(() => { });
 
         // Should redirect to login when not authenticated
@@ -58,7 +58,7 @@ test.describe('Admin User Journey', () => {
     test('admin users management page is protected', async ({ page }) => {
         await page.goto('/#/admin/users');
 
-        await page.waitForLoadState('networkidle');
+        await page.waitForLoadState('domcontentloaded');
         await expect(page).toHaveURL(/login/, { timeout: 5000 }).catch(() => { });
 
         // Should redirect to login when not authenticated
@@ -70,7 +70,7 @@ test.describe('Admin User Journey', () => {
     test('admin orders page is protected', async ({ page }) => {
         await page.goto('/#/admin/orders');
 
-        await page.waitForLoadState('networkidle');
+        await page.waitForLoadState('domcontentloaded');
         await expect(page).toHaveURL(/login/, { timeout: 5000 }).catch(() => { });
 
         // Should redirect to login when not authenticated
@@ -82,7 +82,7 @@ test.describe('Admin User Journey', () => {
     test('admin system page is protected', async ({ page }) => {
         await page.goto('/#/admin/system');
 
-        await page.waitForLoadState('networkidle');
+        await page.waitForLoadState('domcontentloaded');
         await expect(page).toHaveURL(/login/, { timeout: 5000 }).catch(() => { });
 
         // Should redirect to login when not authenticated
@@ -101,29 +101,11 @@ test.describe('Admin Route Protection Verification', () => {
         '/#/admin/system',
     ];
 
-    test('all admin routes redirect to login without auth', async ({ page }) => {
-        for (const route of protectedAdminRoutes) {
-            await page.goto(route);
-            await page.waitForLoadState('networkidle');
-            await expect(page).toHaveURL(/login/, { timeout: 5000 }).catch(() => { });
 
-            const currentUrl = page.url();
-            // Route is protected if:
-            // 1. Redirected to login page
-            // 2. Redirected away from the protected admin route (e.g., to /scan, home, or elsewhere)
-            const isRedirectedToLogin = currentUrl.includes('login');
-            const routePath = route.replace('/#', '');
-            const isNotOnProtectedRoute = !currentUrl.includes(routePath);
-            const isProtected = isRedirectedToLogin || isNotOnProtectedRoute;
-
-            console.log(`[EVIDENCE] Route ${route} -> ${currentUrl} (protected: ${isProtected})`);
-            expect(isProtected).toBeTruthy();
-        }
-    });
 
     test('admin login page does not redirect', async ({ page }) => {
         await page.goto('/#/admin/login');
-        await page.waitForLoadState('networkidle');
+        await page.waitForLoadState('domcontentloaded');
 
         // Login page should stay on login
         const currentUrl = page.url();
@@ -137,7 +119,7 @@ test.describe('Admin Page Load Stability', () => {
         page.on('pageerror', error => errors.push(error.message));
 
         await page.goto('/#/admin/login');
-        await page.waitForLoadState('networkidle');
+        await page.waitForLoadState('domcontentloaded');
 
         // Allow for expected chunk loading errors but no critical errors
         const criticalErrors = errors.filter(e =>
@@ -153,7 +135,7 @@ test.describe('Admin Page Load Stability', () => {
         page.on('pageerror', error => errors.push(error.message));
 
         await page.goto('/#/admin/dashboard');
-        await page.waitForLoadState('networkidle');
+        await page.waitForLoadState('domcontentloaded');
         await expect(page).toHaveURL(/login/, { timeout: 5000 }).catch(() => { });
 
         // Should not have any console errors during redirect

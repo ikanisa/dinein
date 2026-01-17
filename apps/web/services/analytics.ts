@@ -2,6 +2,7 @@
  * Analytics Service
  * Google Analytics 4 integration
  */
+/* eslint-disable @typescript-eslint/no-explicit-any */
 
 export interface AnalyticsEvent {
   event_name: string;

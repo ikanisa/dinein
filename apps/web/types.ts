@@ -69,6 +69,7 @@ export interface Venue {
   tags?: string[];
   menu: MenuItem[];
   imageUrl?: string;
+  logoUrl?: string;
   ownerId?: string;
   currency?: string; // e.g., '€', '$', '£', 'RWF'
   status?: 'active' | 'pending_claim' | 'suspended';

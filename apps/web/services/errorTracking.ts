@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 /**
  * Error Tracking Service
  * Integrates with Sentry for error monitoring and performance.

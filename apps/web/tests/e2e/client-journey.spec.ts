@@ -17,7 +17,7 @@ test.describe('Client User Journey', () => {
 
     test('homepage loads correctly', async ({ page }) => {
         await page.goto('/#/');
-        await page.waitForLoadState('networkidle');
+        await page.waitForLoadState('domcontentloaded');
 
         // Homepage renders ClientLanding at root - check for landing page content
         const url = page.url();
@@ -35,7 +35,7 @@ test.describe('Client User Journey', () => {
 
     test('settings page is accessible', async ({ page }) => {
         await page.goto('/#/settings');
-        await page.waitForLoadState('networkidle');
+        await page.waitForLoadState('domcontentloaded');
 
         // Settings page should have some content
         const hasContent = await page.locator('h1, h2, button, [class*="glass"]').first().isVisible();
@@ -46,7 +46,7 @@ test.describe('Client User Journey', () => {
         // Navigate to a test vendor (use hash routing)
         await page.goto('/#/v/test-restaurant');
 
-        await page.waitForLoadState('networkidle');
+        await page.waitForLoadState('domcontentloaded');
 
         // Should be on a vendor page
         await expect(page).toHaveURL(/\/#\/v\//);
@@ -60,7 +60,7 @@ test.describe('Client User Journey', () => {
         // Simulate QR code scan by navigating to table URL
         await page.goto('/#/v/test-restaurant/t/TABLE001');
 
-        await page.waitForLoadState('networkidle');
+        await page.waitForLoadState('domcontentloaded');
 
         // Check URL contains table identifier
         await expect(page).toHaveURL(/TABLE001|t\//);
@@ -69,7 +69,7 @@ test.describe('Client User Journey', () => {
     test('can add items to cart', async ({ page }) => {
         await page.goto('/#/v/test-restaurant');
 
-        await page.waitForLoadState('networkidle');
+        await page.waitForLoadState('domcontentloaded');
 
         // Look for add to cart button
         const addButton = page.locator('[data-testid="add-to-cart"]').or(
@@ -88,7 +88,7 @@ test.describe('Client User Journey', () => {
     test('can open cart modal/page', async ({ page }) => {
         await page.goto('/#/v/test-restaurant');
 
-        await page.waitForLoadState('networkidle');
+        await page.waitForLoadState('domcontentloaded');
 
         // Look for cart icon/button
         const cartButton = page.locator('[data-testid="cart-icon"]').or(
@@ -107,7 +107,7 @@ test.describe('Client User Journey', () => {
 
     test('order status page loads', async ({ page }) => {
         await page.goto('/#/order/test-order-123');
-        await page.waitForLoadState('networkidle');
+        await page.waitForLoadState('domcontentloaded');
         await page.waitForTimeout(1000);
 
         // Order page should show content (order details or not found message)
@@ -118,7 +118,7 @@ test.describe('Client User Journey', () => {
 
     test('bar onboarding page is accessible', async ({ page }) => {
         await page.goto('/#/bar/onboard');
-        await page.waitForLoadState('networkidle');
+        await page.waitForLoadState('domcontentloaded');
 
         // Check page has content
         const hasContent = await page.locator('main, h1, h2, form, [class*="glass"]').first().isVisible();
@@ -136,16 +136,16 @@ test.describe('Client User Journey', () => {
 
         // Navigate through main client pages
         await page.goto('/#/');
-        await page.waitForLoadState('networkidle');
+        await page.waitForLoadState('domcontentloaded');
 
         await page.goto('/#/settings');
-        await page.waitForLoadState('networkidle');
+        await page.waitForLoadState('domcontentloaded');
 
         await page.goto('/#/v/test-venue');
-        await page.waitForLoadState('networkidle');
+        await page.waitForLoadState('domcontentloaded');
 
         await page.goto('/#/');
-        await page.waitForLoadState('networkidle');
+        await page.waitForLoadState('domcontentloaded');
 
         // Filter out expected errors (like 404s for missing resources)
         const criticalErrors = errors.filter(e =>
@@ -162,7 +162,7 @@ test.describe('Client User Journey', () => {
         await page.setViewportSize({ width: 375, height: 667 });
 
         await page.goto('/#/v/test-venue');
-        await page.waitForLoadState('networkidle');
+        await page.waitForLoadState('domcontentloaded');
 
         // Check that content is visible (no horizontal overflow)
         const bodyWidth = await page.evaluate(() => document.body.scrollWidth);

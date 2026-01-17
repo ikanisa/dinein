@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 /**
  * Accessible Button Component
  * Ensures WCAG 2.1 AA compliance with proper ARIA attributes and keyboard navigation

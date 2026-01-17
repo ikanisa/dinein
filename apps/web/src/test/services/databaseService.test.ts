@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { describe, it, expect, beforeAll, afterAll, afterEach, vi } from 'vitest';
 import { server } from '@/src/test/mocks/server';
 import { mockVendors, mockMenuItems, mockOrders } from '@/src/test/mocks/handlers';

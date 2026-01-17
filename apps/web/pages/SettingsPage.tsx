@@ -25,7 +25,7 @@ const SettingsPage = () => {
   const [isLoading, setIsLoading] = useState(true);
   const navigate = useNavigate();
   const { theme, toggleTheme } = useTheme();
-  const { favorites, removeFavorite } = useCart();
+  const { favorites, removeFavorite, cart, totalItems, totalAmount: cartTotal } = useCart();
   const { t, currentLanguage, changeLanguage } = useLanguage();
 
   useEffect(() => {
@@ -167,6 +167,42 @@ const SettingsPage = () => {
             />
           </div>
         </GlassCard>
+
+        {/* Active Cart Section */}
+        {cart.length > 0 && (
+          <section>
+            <h2 className="text-lg font-bold mb-4 text-foreground">CURRENT ORDER ({totalItems})</h2>
+            <GlassCard className="p-4 border-primary-500/30 bg-primary-500/5">
+              <div className="flex justify-between items-center mb-3">
+                <div>
+                  <div className="font-bold text-foreground">Items in Cart</div>
+                  <div className="text-xs text-muted">You have unplaced items</div>
+                </div>
+                <div className="font-bold text-primary-500">€{cartTotal.toFixed(2)}</div>
+              </div>
+              <div className="space-y-2 mb-4">
+                {cart.slice(0, 3).map((cartItem, idx) => (
+                  <div key={`${cartItem.item.id}-${idx}`} className="flex justify-between text-sm">
+                    <span className="text-foreground/80 truncate pr-4">{cartItem.quantity}x {cartItem.item.name}</span>
+                    <span className="text-foreground">€{(cartItem.item.price * cartItem.quantity).toFixed(2)}</span>
+                  </div>
+                ))}
+                {cart.length > 3 && (
+                  <div className="text-xs text-muted text-center pt-1">+{cart.length - 3} more items</div>
+                )}
+              </div>
+              <button
+                onClick={() => {
+                  const lastVenueId = localStorage.getItem('last_venue_id');
+                  navigate(lastVenueId ? `/v/${lastVenueId}#cart` : '/');
+                }}
+                className="w-full py-2.5 bg-primary-500 text-white font-bold rounded-lg shadow-lg active:scale-95 transition-all text-sm"
+              >
+                Go to Checkout
+              </button>
+            </GlassCard>
+          </section>
+        )}
 
         {/* Order History Section */}
         <section>

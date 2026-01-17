@@ -48,7 +48,7 @@ test.describe('RBAC Security - Unauthenticated Access', () => {
     test('accessing admin dashboard without auth shows login or spinner', async ({ page }) => {
         // Attempt to access admin dashboard directly
         await page.goto('/#/admin/dashboard');
-        await page.waitForLoadState('networkidle');
+        await page.waitForLoadState('domcontentloaded');
 
         // Wait for auth check to complete
         await page.waitForTimeout(4000);
@@ -77,7 +77,7 @@ test.describe('RBAC Security - Unauthenticated Access', () => {
     test('accessing manager dashboard without auth shows login or spinner', async ({ page }) => {
         // Attempt to access manager dashboard directly
         await page.goto('/#/manager/live');
-        await page.waitForLoadState('networkidle');
+        await page.waitForLoadState('domcontentloaded');
         await page.waitForTimeout(4000);
 
         const currentUrl = page.url();
@@ -95,7 +95,7 @@ test.describe('RBAC Security - Unauthenticated Access', () => {
 
     test('accessing admin users page without auth shows login or spinner', async ({ page }) => {
         await page.goto('/#/admin/users');
-        await page.waitForLoadState('networkidle');
+        await page.waitForLoadState('domcontentloaded');
         await page.waitForTimeout(4000);
 
         const currentUrl = page.url();
@@ -113,7 +113,7 @@ test.describe('RBAC Security - Unauthenticated Access', () => {
 
     test('accessing admin vendors page without auth shows login or spinner', async ({ page }) => {
         await page.goto('/#/admin/vendors');
-        await page.waitForLoadState('networkidle');
+        await page.waitForLoadState('domcontentloaded');
         await page.waitForTimeout(4000);
 
         const currentUrl = page.url();
@@ -145,7 +145,7 @@ test.describe('RBAC Security - Route Protection Verification', () => {
         for (const route of adminRoutes) {
             // Clear state before each route test
             await page.goto('/#/');
-            await page.waitForLoadState('networkidle');
+            await page.waitForLoadState('domcontentloaded');
             await page.context().clearCookies();
             try {
                 await page.evaluate(() => localStorage.clear());
@@ -154,7 +154,7 @@ test.describe('RBAC Security - Route Protection Verification', () => {
             }
 
             await page.goto(route);
-            await page.waitForLoadState('networkidle');
+            await page.waitForLoadState('domcontentloaded');
             await page.waitForTimeout(3000);
 
             const currentUrl = page.url();
@@ -249,12 +249,12 @@ test.describe('RBAC Security - Evidence Collection', () => {
 
         // Navigate to page first, then clear auth
         await page.goto('/#/');
-        await page.waitForLoadState('networkidle');
+        await page.waitForLoadState('domcontentloaded');
         await page.context().clearCookies();
 
         // Try to access protected route
         await page.goto('/#/admin/dashboard');
-        await page.waitForLoadState('networkidle');
+        await page.waitForLoadState('domcontentloaded');
         await page.waitForTimeout(3000);
 
         // Log evidence

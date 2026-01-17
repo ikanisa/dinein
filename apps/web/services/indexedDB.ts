@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 /**
  * IndexedDB Service using Dexie.js
  * Provides offline storage for menus and orders

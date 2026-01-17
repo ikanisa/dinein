@@ -46,43 +46,6 @@ const HomeIcon = ({ active }: { active: boolean }) => (
     </svg>
 );
 
-// Search/Explore icon
-const SearchIcon = ({ active }: { active: boolean }) => (
-    <svg
-        xmlns="http://www.w3.org/2000/svg"
-        width="24"
-        height="24"
-        viewBox="0 0 24 24"
-        fill="none"
-        stroke="currentColor"
-        strokeWidth={active ? 2.5 : 2}
-        strokeLinecap="round"
-        strokeLinejoin="round"
-    >
-        <circle cx="11" cy="11" r="8" />
-        <path d="m21 21-4.3-4.3" />
-    </svg>
-);
-
-// Cart icon
-const CartIcon = ({ active }: { active: boolean }) => (
-    <svg
-        xmlns="http://www.w3.org/2000/svg"
-        width="24"
-        height="24"
-        viewBox="0 0 24 24"
-        fill={active ? 'currentColor' : 'none'}
-        stroke="currentColor"
-        strokeWidth="2"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-    >
-        <circle cx="8" cy="21" r="1" />
-        <circle cx="19" cy="21" r="1" />
-        <path d="M2.05 2.05h2l2.66 12.42a2 2 0 0 0 2 1.58h9.78a2 2 0 0 0 1.95-1.57l1.65-7.43H5.12" />
-    </svg>
-);
-
 // Settings/Profile icon
 const SettingsIcon = ({ active }: { active: boolean }) => (
     <svg
@@ -103,9 +66,10 @@ const SettingsIcon = ({ active }: { active: boolean }) => (
 
 export const BottomTabBar: React.FC<BottomTabBarProps> = ({
     tabs,
-    cartCount = 0,
-    venueId,
+    cartCount = 0, // Kept for prop compatibility but unused in logic
+    // venueId, // Unused
     visible = true,
+
 }) => {
     const navigate = useNavigate();
     const location = useLocation();
@@ -119,23 +83,11 @@ export const BottomTabBar: React.FC<BottomTabBarProps> = ({
             path: '/',
         },
         {
-            icon: <SearchIcon active={false} />,
-            activeIcon: <SearchIcon active={true} />,
-            label: 'Explore',
-            path: '/',
-        },
-        {
-            icon: <CartIcon active={false} />,
-            activeIcon: <CartIcon active={true} />,
-            label: 'Cart',
-            path: venueId ? `/v/${venueId}#cart` : '/',
-            badge: cartCount,
-        },
-        {
             icon: <SettingsIcon active={false} />,
             activeIcon: <SettingsIcon active={true} />,
             label: 'Settings',
             path: '/settings',
+            badge: cartCount > 0 ? cartCount : undefined // Show badge on Settings if there are cart items
         },
     ];
 
@@ -187,8 +139,8 @@ export const BottomTabBar: React.FC<BottomTabBarProps> = ({
                             onClick={() => handleTabPress(tab)}
                             whileTap={{ scale: 0.9 }}
                             className={`relative flex flex-col items-center justify-center min-w-[64px] min-h-[48px] px-3 py-2 rounded-xl transition-colors ${active
-                                    ? 'text-primary-500'
-                                    : 'text-muted hover:text-foreground'
+                                ? 'text-primary-500'
+                                : 'text-muted hover:text-foreground'
                                 }`}
                             aria-label={tab.label}
                             aria-current={active ? 'page' : undefined}

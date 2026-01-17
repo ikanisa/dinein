@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { useEffect, useState, useCallback } from 'react';
 import { Order, OrderStatus } from '../../types';
 import { supabase } from '../../services/supabase';

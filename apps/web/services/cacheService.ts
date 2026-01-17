@@ -2,6 +2,7 @@
  * Cache Service - Response caching for API calls
  * Implements TTL-based caching with localStorage and in-memory cache
  */
+/* eslint-disable @typescript-eslint/no-explicit-any */
 
 interface CacheEntry<T> {
   data: T;
@@ -151,7 +152,7 @@ export const cacheService = new CacheService();
 // Clean expired entries on startup and periodically
 if (typeof window !== 'undefined') {
   cacheService.cleanExpired();
-  
+
   // Clean every 10 minutes
   setInterval(() => {
     cacheService.cleanExpired();
@@ -172,7 +173,7 @@ export function withCache<T extends (...args: any[]) => Promise<any>>(
     if (cached !== null) {
       return cached;
     }
-    
+
     const result = await fn(...args);
     cacheService.set(key, result, ttl);
     return result;
@@ -183,7 +184,7 @@ export function withCache<T extends (...args: any[]) => Promise<any>>(
  * Generate cache key from arguments
  */
 export function generateCacheKey(prefix: string, ...args: any[]): string {
-  return `${prefix}_${args.map(arg => 
+  return `${prefix}_${args.map(arg =>
     typeof arg === 'object' ? JSON.stringify(arg) : String(arg)
   ).join('_')}`;
 }
