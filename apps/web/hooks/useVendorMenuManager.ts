@@ -2,8 +2,7 @@ import { useCallback, useMemo, useState } from 'react';
 import { toast } from 'react-hot-toast';
 import { MenuItem, Venue } from '../types';
 import { updateVenueMenu, getVenueById, createMenuItem } from '../services/databaseService';
-// Gemini AI removed from client - image generation disabled
-// Menu parsing and image generation should be done via admin Edge Functions
+import { useGemini } from './useGemini';
 
 interface UseVendorMenuManagerArgs {
   venue: Venue | null;
@@ -14,8 +13,8 @@ export const useVendorMenuManager = ({ venue, setVenue }: UseVendorMenuManagerAr
   const [menuModalOpen, setMenuModalOpen] = useState(false);
   const [editingItem, setEditingItem] = useState<Partial<MenuItem>>({});
 
+  const { generateImage, loading: aiLoading } = useGemini();
   const [aiImagePrompt, setAiImagePrompt] = useState('');
-  const [aiImageLoading, setAiImageLoading] = useState(false);
 
   const [menuSearch, setMenuSearch] = useState('');
   const [menuFilterCategory, setMenuFilterCategory] = useState('All');
@@ -119,11 +118,18 @@ export const useVendorMenuManager = ({ venue, setVenue }: UseVendorMenuManagerAr
   );
 
   const handleAiImageAction = useCallback(async () => {
-    // Gemini AI removed from client - image generation disabled
-    toast.error('AI image generation is no longer available in the client. Please use admin tools or upload images manually.');
-    setAiImageLoading(false);
-    setAiImagePrompt('');
-  }, []);
+    if (!aiImagePrompt.trim()) {
+      toast.error('Please enter a prompt');
+      return;
+    }
+
+    const imageUrl = await generateImage(aiImagePrompt, 'fast'); // Use 'fast' model for menu items
+
+    if (imageUrl) {
+      setEditingItem(prev => ({ ...prev, imageUrl }));
+      toast.success('Image generated!');
+    }
+  }, [aiImagePrompt, generateImage]);
 
   const handleFileUpload = useCallback(async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
@@ -197,7 +203,7 @@ export const useVendorMenuManager = ({ venue, setVenue }: UseVendorMenuManagerAr
     filteredMenuItems,
     isProcessingMenu,
     handleFileUpload,
-    aiImageLoading,
+    aiImageLoading: aiLoading,
     handleAiImageAction,
     aiImagePrompt,
     setAiImagePrompt,

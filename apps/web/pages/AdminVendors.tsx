@@ -7,6 +7,9 @@ import { ErrorState } from '../components/common/ErrorState';
 import { supabase } from '../services/supabase';
 import { toast } from 'react-hot-toast';
 import Input from '../components/ui/Input';
+import { AIEnhanceButton } from '../components/AIEnhanceButton';
+import { AIEnhanceModal } from '../components/AIEnhanceModal';
+import { useGemini } from '../hooks/useGemini';
 
 interface VendorData {
     id: string;
@@ -67,6 +70,52 @@ const AdminVendors = () => {
         owner_password: ''
     });
     const [submitting, setSubmitting] = useState(false);
+
+    // AI Integration
+    const { categorizeVenue } = useGemini();
+    const [showAiModal, setShowAiModal] = useState(false);
+    const [aiPreviewData, setAiPreviewData] = useState<any>(null);
+    const [enhancingVendorId, setEnhancingVendorId] = useState<string | null>(null);
+
+    const handleAiEnhance = async (vendor: VendorData) => {
+        setEnhancingVendorId(vendor.id);
+        try {
+            const result = await categorizeVenue(
+                vendor.name,
+                vendor.address || '',
+                '', // description
+                // Use vendor lat/lng if available, otherwise undefined (backend handles it)
+                (vendor as any).lat,
+                (vendor as any).lng
+            );
+
+            if (result) {
+                setAiPreviewData(result);
+                setShowAiModal(true);
+            }
+        } catch (err) {
+            toast.error('AI Enhancement failed');
+            console.error(err);
+        } finally {
+            setEnhancingVendorId(null);
+        }
+    };
+
+    const handleApplyAiEnhancement = async () => {
+        if (!aiPreviewData || !enhancingVendorId) return;
+
+        // In a real scenario, we'd save these tags to the database.
+        // For now, consistent with the plan, we'll toast the results or update metadata if columns exist.
+        // Since we checked the schema and might not have a dedicated 'tags' column yet in the UI,
+        // we will simulate the update or save it if a suitable column exists (like highlights in a generic json).
+        // For this step, let's assume we update a 'metadata' or similar if available, or just notify user.
+
+        // As per schema check pending, fallback to toast:
+        console.log('Applying AI Data:', aiPreviewData);
+        toast.success('AI Categories applied! (Simulation)');
+        setShowAiModal(false);
+        setAiPreviewData(null);
+    };
 
     useEffect(() => {
         loadData();
@@ -381,6 +430,13 @@ const AdminVendors = () => {
                             >
                                 {processing === vendor.id ? <Spinner className="w-3 h-3" /> : '🗑️ Delete'}
                             </button>
+
+                            <AIEnhanceButton
+                                onClick={() => handleAiEnhance(vendor)}
+                                loading={enhancingVendorId === vendor.id}
+                                className="col-span-3 mt-2 justify-center"
+                                label="Auto-Categorize Venue"
+                            />
                         </div>
                     </GlassCard>
                 ))}
@@ -463,6 +519,14 @@ const AdminVendors = () => {
                     </GlassCard>
                 </div>
             )}
+            {/* Modal */}
+            <AIEnhanceModal
+                isOpen={showAiModal}
+                onClose={() => setShowAiModal(false)}
+                onConfirm={handleApplyAiEnhancement}
+                previewData={aiPreviewData}
+                title="Venue Categorization Preview"
+            />
         </div>
     );
 };

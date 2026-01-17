@@ -1,5 +1,5 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import React, { useEffect, useState, useRef } from 'react';
+import React, { useEffect, useState, useRef, useMemo } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { GlassCard } from '../components/GlassCard';
 import { MenuListSkeleton } from '../components/Loading';
@@ -11,9 +11,11 @@ import { BottomSheet } from '../components/ui/BottomSheet';
 import { PullToRefresh } from '../components/PullToRefresh';
 import { useMenu } from '../hooks/useMenu';
 import { getOrdersForVenue, toOrderStatus, toPaymentStatus } from '../services/databaseService';
-import { Order, OrderStatus } from '../types';
+import { Order, OrderStatus, MenuItem } from '../types';
 import { useCart } from '../context/CartContext';
 import { supabase } from '../services/supabase';
+import { useAICategorization } from '../hooks/useAICategorization';
+import { CategoryBadges } from '../components/venues/CategoryBadges';
 
 const EmptyState = React.lazy(() => import('../components/ui/EmptyState'));
 
@@ -25,6 +27,45 @@ const ClientMenu = () => {
 
   // Use optimized menu hook
   const { venue, menu: allMenuItems, categories, isLoading: menuLoading, error: menuError, refetch } = useMenu(venueId, tableCode);
+
+  // AI Categorization
+  const { categories: aiCategories, isCalculating: aiLoading } = useAICategorization(venue || undefined);
+
+  const availableItems = allMenuItems.filter(i => i.available !== false);
+
+  // Dynamic Grouping Logic (AI vs Legacy)
+  const { groupedItems, displayCategories } = useMemo(() => {
+    // If we have AI grouping, use it
+    if (aiCategories?.menu_grouping && Object.keys(aiCategories.menu_grouping).length > 0) {
+      const groups: Record<string, MenuItem[]> = {};
+      const cats = new Set<string>();
+
+      availableItems.forEach(item => {
+        // Get smart category or fallback to 'Other'
+        const smartCat = aiCategories.menu_grouping?.[item.id]?.smart_category || 'Other';
+
+        if (!groups[smartCat]) groups[smartCat] = [];
+        groups[smartCat].push(item);
+        cats.add(smartCat);
+      });
+
+      // Simple alphabetical sort for now, ensuring 'Other' is last
+      const sortedCats = Array.from(cats).sort((a, b) => {
+        if (a === 'Other') return 1;
+        if (b === 'Other') return -1;
+        return a.localeCompare(b);
+      });
+
+      return { groupedItems: groups, displayCategories: sortedCats };
+    }
+
+    // Fallback to legacy categories
+    const groups: Record<string, MenuItem[]> = {};
+    categories.forEach(cat => {
+      groups[cat] = availableItems.filter(i => i.category === cat);
+    });
+    return { groupedItems: groups, displayCategories: categories };
+  }, [aiCategories, categories, availableItems]);
 
   const [activeCategory, setActiveCategory] = useState<string>('All');
   const [showFavoritesOnly, setShowFavoritesOnly] = useState(false);
@@ -76,7 +117,7 @@ const ClientMenu = () => {
           // Find which category this section belongs to
           const catId = entry.target.id.replace('category-', '').replace(/-/g, ' ');
           // We need to match case insensitive back to format
-          const matchedCat = categories.find(c => c.toLowerCase() === catId);
+          const matchedCat = displayCategories.find(c => c.toLowerCase() === catId);
           if (matchedCat) {
             setActiveCategory(matchedCat);
 
@@ -90,7 +131,7 @@ const ClientMenu = () => {
       });
     }, { rootMargin: '-15% 0px -70% 0px', threshold: 0 });
 
-    categories.forEach(cat => {
+    displayCategories.forEach(cat => {
       const el = document.getElementById(`category-${cat.toLowerCase().replace(/\s+/g, '-')}`);
       if (el) observer.observe(el);
     });
@@ -119,7 +160,7 @@ const ClientMenu = () => {
       observer.disconnect();
       heroObserver.disconnect();
     };
-  }, [categories]);
+  }, [displayCategories]);
 
   // Realtime subscription for current order status
   useEffect(() => {
@@ -191,8 +232,6 @@ const ClientMenu = () => {
       </div>
     );
   }
-
-  const availableItems = allMenuItems.filter(i => i.available !== false);
 
   // Apply filters: category and favorites
   // filteredItems removed as it was unused and recalculated in render loop
@@ -499,7 +538,15 @@ const ClientMenu = () => {
             <div className="flex flex-wrap gap-2 text-sm text-gray-200">
               <span>{venue.description}</span>
             </div>
-            {venue.tags && venue.tags.length > 0 && (
+
+            {/* AI Smart Categories */}
+            <CategoryBadges categories={aiCategories} isLoading={aiLoading} />
+
+            {/* Fallback Legacy Tags (only if AI is null/loading and we want to show something, or duplicate?) 
+                Actually CategoryBadges handles loading. Let's hide legacy tags if we have AI, or merge? 
+                The hook falls back to legacy tags if AI fails. So we can just rely on CategoryBadges. 
+            */}
+            {(!aiCategories && !aiLoading && venue.tags && venue.tags.length > 0) && (
               <div className="flex gap-2 mt-2 overflow-x-auto no-scrollbar">
                 {venue.tags.map(t => (
                   <span key={t} className="text-[10px] bg-secondary-500/30 backdrop-blur-sm text-white/90 px-2 py-0.5 rounded border border-secondary-500/30 whitespace-nowrap">
@@ -529,7 +576,7 @@ const ClientMenu = () => {
               role="tablist"
               aria-label="Filter menu by category"
             >
-              {categories.map(cat => (
+              {displayCategories.map(cat => (
                 <button
                   key={cat}
                   onClick={() => {
@@ -548,17 +595,18 @@ const ClientMenu = () => {
                     }`}
                 >
                   {cat}
+                  {/* Subtle indicator for smart categories */}
+                  {aiCategories?.menu_grouping && <span className="ml-1 text-[10px] opacity-70">✨</span>}
                 </button>
               ))}
             </div>
           </div>
         </nav>
 
-        {/* Menu Grid - Vertical Categories */}
         <div className="pb-32 space-y-8 pt-6">
-          {categories.map(category => {
-            // Filter items for this category
-            const categoryItems = availableItems.filter(i => i.category === category);
+          {displayCategories.map(category => {
+            // Filter items for this category using pre-computed groups
+            const categoryItems = groupedItems[category] || [];
             if (categoryItems.length === 0) return null;
             if (showFavoritesOnly && !categoryItems.some(i => isFavorite(i.id))) return null;
 
@@ -609,12 +657,23 @@ const ClientMenu = () => {
                               {item.name}
                             </h3>
                           </div>
-                          {item.description && (
-                            <p className="text-xs text-muted mt-1 line-clamp-2 leading-relaxed opacity-90">
-                              {item.description}
-                            </p>
-                          )}
                         </div>
+                        {item.description && (
+                          <p className="text-xs text-muted mt-1 line-clamp-2 leading-relaxed opacity-90">
+                            {item.description}
+                          </p>
+                        )}
+                        {/* AI Menu Tags */}
+                        {aiCategories?.menu_grouping?.[item.id]?.dietary_tags && (
+                          <div className="flex flex-wrap gap-1 mt-2">
+                            {aiCategories.menu_grouping[item.id].dietary_tags?.map(tag => (
+                              <span key={tag} className="text-[9px] px-1.5 py-0.5 rounded bg-green-500/10 text-green-600 border border-green-500/20 font-medium">
+                                {tag}
+                              </span>
+                            ))}
+                          </div>
+                        )}
+
 
                         <div className="flex justify-between items-center mt-3">
                           <span className="font-bold text-base text-foreground">
@@ -786,7 +845,7 @@ const ClientMenu = () => {
           </div>
         </BottomSheet>
       </main>
-    </PullToRefresh>
+    </PullToRefresh >
   );
 };
 
