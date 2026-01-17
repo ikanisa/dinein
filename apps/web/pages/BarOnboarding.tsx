@@ -28,11 +28,11 @@ interface BarData {
 const BarOnboarding: React.FC = () => {
     const navigate = useNavigate();
     const [step, setStep] = useState<OnboardingStep>('search');
-    const [_selectedVenue, setSelectedVenue] = useState<Venue | null>(null);
+    const [, setSelectedVenue] = useState<Venue | null>(null);
     const [barData, setBarData] = useState<BarData | null>(null);
     const [menuItems, setMenuItems] = useState<MenuItem[]>([]);
     const [isSubmitting, setIsSubmitting] = useState(false);
-    const [_createdVenueId, setCreatedVenueId] = useState<string | null>(null);
+    const [, setCreatedVenueId] = useState<string | null>(null);
 
     // Step 1: Search or select existing bar
     const handleSelectVenue = (venue: Venue) => {

@@ -87,17 +87,97 @@
   <link rel="stylesheet" href="/design-tokens.css">
 
   <style>
-    /* Critical inline styles to prevent FOUC */
+    /* Critical inline styles to prevent FOUC and improve LCP */
+    *,
+    *::before,
+    *::after {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    html {
+      font-size: 16px;
+      -webkit-text-size-adjust: 100%;
+    }
+
     body {
-      background: var(--bg-main);
-      background-image: var(--body-gradient);
-      color: var(--text-main);
-      font-family: var(--font-body);
+      background: var(--bg-main, #0E1120);
+      background-image: var(--body-gradient, radial-gradient(circle at 20% 0%, rgba(0, 180, 216, 0.18) 0%, rgba(14, 17, 32, 0.96) 60%));
+      color: var(--text-main, #F5F7FF);
+      font-family: var(--font-body, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif);
       -webkit-tap-highlight-color: transparent;
       overscroll-behavior-y: none;
       user-select: none;
       -webkit-user-select: none;
       transition: background-color 0.5s ease, color 0.5s ease;
+      min-height: 100vh;
+      min-height: 100dvh;
+    }
+
+    /* Loading skeleton - shows immediately before React loads */
+    #loading-skeleton {
+      position: fixed;
+      inset: 0;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 24px;
+      padding-top: env(safe-area-inset-top, 0);
+      padding-bottom: env(safe-area-inset-bottom, 0);
+      z-index: 9999;
+    }
+
+    #loading-skeleton .logo {
+      font-size: 28px;
+      font-weight: 700;
+      background: linear-gradient(135deg, #ff8b5a 0%, #00b4d8 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      animation: pulse 2s ease-in-out infinite;
+    }
+
+    #loading-skeleton .subtitle {
+      font-size: 14px;
+      color: var(--text-muted, #B8C4E0);
+      margin-top: 8px;
+      opacity: 0.8;
+    }
+
+    #loading-skeleton .spinner {
+      margin-top: 32px;
+      width: 32px;
+      height: 32px;
+      border: 3px solid rgba(255, 139, 90, 0.2);
+      border-top-color: #ff8b5a;
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+    }
+
+    @keyframes spin {
+      to {
+        transform: rotate(360deg);
+      }
+    }
+
+    @keyframes pulse {
+
+      0%,
+      100% {
+        opacity: 1;
+      }
+
+      50% {
+        opacity: 0.7;
+      }
+    }
+
+    /* Hide skeleton when React mounts */
+    #root:not(:empty)+#loading-skeleton,
+    #root:not(:empty)~#loading-skeleton {
+      display: none;
     }
 
     /* Hide Scrollbar but keep functionality */
@@ -112,11 +192,11 @@
 
     /* Premium Glass Panel */
     .glass-panel {
-      background: var(--glass-bg);
-      backdrop-filter: blur(var(--blur-xl));
-      -webkit-backdrop-filter: blur(var(--blur-xl));
-      border: 1px solid var(--border-color);
-      box-shadow: var(--shadow-glass);
+      background: var(--glass-bg, rgba(21, 26, 46, 0.7));
+      backdrop-filter: blur(var(--blur-xl, 24px));
+      -webkit-backdrop-filter: blur(var(--blur-xl, 24px));
+      border: 1px solid var(--border-color, rgba(255, 255, 255, 0.08));
+      box-shadow: var(--shadow-glass, 0 8px 32px rgba(0, 0, 0, 0.25));
     }
 
     /* Input fields should allow selection */
@@ -125,9 +205,7 @@
       user-select: text;
       -webkit-user-select: text;
     }
-  </style>
-  <link rel="stylesheet" href="/index.css">
-  <style>
+
     /* Ripple animation for touch feedback */
     @keyframes ripple {
       to {
@@ -135,11 +213,68 @@
         opacity: 0;
       }
     }
+
+    /* Fade in animation for initial page render (deferred framer-motion strategy) */
+    @keyframes fadeIn {
+      from {
+        opacity: 0;
+        transform: translateX(10px);
+      }
+
+      to {
+        opacity: 1;
+        transform: translateX(0);
+      }
+    }
+
+    .animate-fade-in {
+      animation: fadeIn 0.15s ease-out forwards;
+    }
+
+    /* Reduce motion for accessibility */
+    @media (prefers-reduced-motion: reduce) {
+
+      *,
+      *::before,
+      *::after {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+      }
+    }
+
+    /* Light mode support */
+    @media (prefers-color-scheme: light) {
+      body {
+        background: var(--bg-main, #FFF7F2);
+        background-image: var(--body-gradient, radial-gradient(circle at 20% 0%, rgba(255, 107, 53, 0.18) 0%, rgba(255, 167, 99, 0.08) 35%, #FFF7F2 70%));
+        color: var(--text-main, #1A1A2E);
+      }
+
+      #loading-skeleton .subtitle {
+        color: var(--text-muted, #464866);
+      }
+
+      .glass-panel {
+        background: var(--glass-bg, rgba(255, 255, 255, 0.82));
+        border-color: var(--border-color, rgba(26, 26, 46, 0.08));
+        box-shadow: var(--shadow-glass, 0 8px 32px rgba(0, 0, 0, 0.08));
+      }
+    }
   </style>
+  <link rel="stylesheet" href="/index.css">
 </head>
 
 <body>
   <div id="root"></div>
+
+  <!-- Loading skeleton shown immediately until React hydrates -->
+  <div id="loading-skeleton" aria-label="Loading DineIn" role="status">
+    <div class="logo">DineIn</div>
+    <div class="subtitle">Loading your experience...</div>
+    <div class="spinner" aria-hidden="true"></div>
+  </div>
+
   <script type="module" src="/index.tsx"></script>
 
 </body>

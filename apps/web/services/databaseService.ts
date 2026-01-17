@@ -42,6 +42,7 @@ export const toPaymentStatus = (value?: string | null): PaymentStatus => {
   return normalized === PaymentStatus.PAID ? PaymentStatus.PAID : PaymentStatus.UNPAID;
 };
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any -- DB row mapper
 const mapVenue = (row: Record<string, any>): Venue => ({
   id: row.id,
   name: row.name,
@@ -62,6 +63,7 @@ const mapVenue = (row: Record<string, any>): Venue => ({
   status: row.status || 'active'
 });
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any -- DB row mapper
 const mapOrder = (row: Record<string, any>): Order => {
   const tableLabel = row.table?.label || row.table?.table_number?.toString() || row.table_number?.toString();
   return {
@@ -79,6 +81,7 @@ const mapOrder = (row: Record<string, any>): Order => {
   };
 };
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any -- DB row mapper
 const mapTable = (row: Record<string, any>): Table => ({
   id: row.id,
   venueId: row.vendor_id || row.venue_id,
@@ -108,6 +111,7 @@ const mapReservationStatusToDb = (status: ReservationStatus): string => {
   }
 };
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any -- DB row mapper
 const mapReservation = (row: Record<string, any>): Reservation => {
   return {
     id: row.id,
@@ -121,6 +125,7 @@ const mapReservation = (row: Record<string, any>): Reservation => {
   };
 };
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any -- DB row mapper
 const mapUser = (row: Record<string, any>): User => ({
   id: row.id,
   name: row.name || 'Guest',
@@ -129,6 +134,7 @@ const mapUser = (row: Record<string, any>): User => ({
   notificationsEnabled: row.notifications_enabled ?? true
 });
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any -- DB row mapper
 const mapMenuItem = (row: Record<string, any>): MenuItem => ({
   id: row.id,
   name: row.name,
@@ -502,7 +508,8 @@ export const createOrder = async (orderData: {
 
   // Map order items back to frontend format (we need to fetch menu items for full details)
   // For now, use snapshot data from order_items
-  const mappedItems = orderItems.map((oi: Record<string, any>) => ({
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Edge function response
+  const mappedItems = orderItems.map((oi: any) => ({
     item: {
       id: '', // Snapshot doesn't include menu_item_id, but we have name/price
       name: oi.name_snapshot,
@@ -557,6 +564,7 @@ export const getOrderById = async (orderId: string): Promise<Order | null> => {
   }
 
   // Map order items
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Supabase query result
   const items = (data.order_items || []).map((item: any) => ({
     id: item.id,
     name: item.name_snapshot,
@@ -612,10 +620,12 @@ export const getOrdersForVenue = async (venueId: string): Promise<Order[]> => {
   if (error) handleSupabaseError(error, 'getOrdersForVenue');
 
   // Map orders and include order items
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Supabase query result
   const orders = (data || []).map((row: any) => {
     const order = mapOrder(row);
     // Map order_items to order.items format
     if (row.order_items && Array.isArray(row.order_items)) {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       order.items = row.order_items.map((oi: any) => ({
         item: {
           id: oi.id || '',
@@ -722,6 +732,7 @@ export const createTablesBatch = async (venueId: string, count: number, startNum
   }
 
   // Map response tables to frontend Table format
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Edge function response
   return (data.tables || []).map((t: any) => ({
     id: t.id,
     venueId: t.vendor_id,
@@ -830,7 +841,7 @@ export const updateMyProfile = async (updates: Partial<User>): Promise<User> => 
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return updates as User; // Cannot update guest
 
-  const dbUpdates: any = {};
+  const dbUpdates: Record<string, unknown> = {};
   if (updates.name) dbUpdates.name = updates.name;
   if (updates.role) dbUpdates.role = updates.role;
   if (updates.favorites) dbUpdates.favorites = updates.favorites;

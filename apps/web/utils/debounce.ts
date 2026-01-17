@@ -2,12 +2,14 @@
  * Debounce utility - delays function execution until after wait milliseconds
  * have elapsed since the last time the debounced function was invoked.
  */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any -- Generic utility function
 export function debounce<T extends (...args: any[]) => void>(
     func: T,
     wait: number
 ): (...args: Parameters<T>) => void {
     let timeoutId: ReturnType<typeof setTimeout> | null = null;
 
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Generic utility function
     return function (this: any, ...args: Parameters<T>) {
         if (timeoutId) {
             clearTimeout(timeoutId);
@@ -23,6 +25,7 @@ export function debounce<T extends (...args: any[]) => void>(
 /**
  * Throttle utility - limits function execution to at most once per wait milliseconds.
  */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any -- Generic utility function
 export function throttle<T extends (...args: any[]) => void>(
     func: T,
     wait: number
@@ -30,6 +33,7 @@ export function throttle<T extends (...args: any[]) => void>(
     let lastTime = 0;
     let timeoutId: ReturnType<typeof setTimeout> | null = null;
 
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Generic utility function
     return function (this: any, ...args: Parameters<T>) {
         const now = Date.now();
         const remaining = wait - (now - lastTime);

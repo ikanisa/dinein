@@ -1,11 +1,10 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, lazy, Suspense } from 'react';
 import { HashRouter as Router, Routes, Route, useNavigate, useLocation, Navigate } from 'react-router-dom';
 import { UserType } from './types';
 import { AnimatePresence, motion } from 'framer-motion';
 import { Toaster } from 'react-hot-toast';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 // Lazy load routes for code splitting for better performance
-import { lazy, Suspense } from 'react';
 
 const ClientMenu = lazy(() => import('./pages/ClientMenu'));
 const SettingsPage = lazy(() => import('./pages/SettingsPage'));
@@ -41,6 +40,7 @@ import { errorTracker } from './services/errorTracking';
 import { analytics } from './services/analytics';
 import { initWebVitals } from './services/webVitals';
 import { preloadCriticalRoutes } from './utils/routePreload';
+import { useAnimationsReady } from './hooks/useAnimationsReady';
 
 // Initialize offline queue processor
 initQueueProcessor();
@@ -269,7 +269,151 @@ const DevButton = () => {
 
 const AnimatedRoutes = () => {
   const location = useLocation();
+  const animationsReady = useAnimationsReady(150); // Defer animations 150ms after first paint
 
+  // Routes content - reused for both animated and non-animated render
+  const routesContent = (
+    <Suspense fallback={<SuspenseFallback />}>
+      <Routes location={location}>
+        {/* Public Client Routes - Simplified to 3 core routes */}
+        <Route path="/" element={<ClientLanding />} />
+        <Route path="/settings" element={<SettingsPage />} />
+        <Route path="/bar/onboard" element={<BarOnboarding />} />
+        <Route path="/order/:id" element={<ClientOrderStatus />} />
+        {/* QR codes should link directly to /v/:venueId/t/:tableCode */}
+        <Route path="/v/:venueId" element={<ClientMenu />} />
+        <Route path="/v/:venueId/t/:tableCode" element={<ClientMenu />} />
+        {/* Legacy route redirects */}
+        <Route path="/scan" element={<ClientLanding />} />
+        <Route path="/profile" element={<Navigate to="/settings" replace />} />
+        <Route path="/menu/:venueId" element={<ClientMenu />} />
+        <Route path="/menu/:venueId/t/:tableCode" element={<ClientMenu />} />
+
+        {/* Manager Routes (Private) - Bar/Restaurant Managers */}
+        <Route path="/manager/login" element={<VendorLogin />} />
+        <Route
+          path="/manager/live"
+          element={
+            <RequireAuth requiredRole={UserType.MANAGER}>
+              <LiveDashboard />
+            </RequireAuth>
+          }
+        />
+        <Route
+          path="/manager/menu"
+          element={
+            <RequireAuth requiredRole={UserType.MANAGER}>
+              <MenuManagement />
+            </RequireAuth>
+          }
+        />
+        <Route
+          path="/manager/history"
+          element={
+            <RequireAuth requiredRole={UserType.MANAGER}>
+              <HistoryAnalytics />
+            </RequireAuth>
+          }
+        />
+        <Route
+          path="/manager/settings"
+          element={
+            <RequireAuth requiredRole={UserType.MANAGER}>
+              <VendorSettings />
+            </RequireAuth>
+          }
+        />
+        <Route
+          path="/manager/dashboard"
+          element={
+            <RequireAuth requiredRole={UserType.MANAGER}>
+              <Navigate to="/manager/live" replace />
+            </RequireAuth>
+          }
+        />
+        <Route
+          path="/manager/dashboard/:tab"
+          element={
+            <RequireAuth requiredRole={UserType.MANAGER}>
+              <VendorDashboard />
+            </RequireAuth>
+          }
+        />
+
+        {/* Admin Routes (Private) */}
+        <Route path="/admin/login" element={<AdminLogin />} />
+        <Route
+          path="/admin/dashboard"
+          element={
+            <RequireAuth requiredRole={UserType.ADMIN}>
+              <AdminDashboard />
+            </RequireAuth>
+          }
+        />
+        <Route
+          path="/admin/vendors"
+          element={
+            <RequireAuth requiredRole={UserType.ADMIN}>
+              <AdminVendors />
+            </RequireAuth>
+          }
+        />
+        <Route
+          path="/admin/orders"
+          element={
+            <RequireAuth requiredRole={UserType.ADMIN}>
+              <AdminOrders />
+            </RequireAuth>
+          }
+        />
+        <Route
+          path="/admin/system"
+          element={
+            <RequireAuth requiredRole={UserType.ADMIN}>
+              <AdminSystem />
+            </RequireAuth>
+          }
+        />
+        <Route
+          path="/admin/users"
+          element={
+            <RequireAuth requiredRole={UserType.ADMIN}>
+              <AdminUsers />
+            </RequireAuth>
+          }
+        />
+
+        {/* Legacy routes - redirect to new structure */}
+        <Route path="/vendor-login" element={<Navigate to="/manager/login" replace />} />
+        <Route path="/business" element={<Navigate to="/manager/login" replace />} />
+        <Route path="/staff/login" element={<Navigate to="/manager/login" replace />} />
+        <Route path="/admin-login" element={<AdminLogin />} />
+        <Route path="/vendor-dashboard" element={<RequireAuth requiredRole={UserType.MANAGER}><VendorDashboard /></RequireAuth>} />
+        <Route path="/vendor-dashboard/:tab" element={<RequireAuth requiredRole={UserType.MANAGER}><VendorDashboard /></RequireAuth>} />
+        <Route path="/admin-dashboard" element={<RequireAuth requiredRole={UserType.ADMIN}><AdminDashboard /></RequireAuth>} />
+        <Route path="/admin-vendors" element={<RequireAuth requiredRole={UserType.ADMIN}><AdminVendors /></RequireAuth>} />
+        <Route path="/admin-orders" element={<RequireAuth requiredRole={UserType.ADMIN}><AdminOrders /></RequireAuth>} />
+        <Route path="/admin-system" element={<RequireAuth requiredRole={UserType.ADMIN}><AdminSystem /></RequireAuth>} />
+        <Route path="/admin-users" element={<RequireAuth requiredRole={UserType.ADMIN}><AdminUsers /></RequireAuth>} />
+
+        {/* Dev route removed - DeveloperSwitchboard deleted */}
+      </Routes>
+    </Suspense>
+  );
+
+  // Initial render: Use CSS transition for instant paint, no framer-motion overhead
+  if (!animationsReady) {
+    return (
+      <div
+        className="min-h-full animate-fade-in"
+        style={{ animation: 'fadeIn 0.15s ease-out' }}
+      >
+        {routesContent}
+      </div>
+    );
+  }
+
+  // After first paint: Use framer-motion for smooth route transitions
   return (
     <AnimatePresence mode="wait">
       <motion.div
@@ -280,132 +424,7 @@ const AnimatedRoutes = () => {
         transition={{ duration: 0.2, ease: 'easeInOut' }}
         className="min-h-full"
       >
-        <Suspense fallback={<SuspenseFallback />}>
-          <Routes location={location}>
-            {/* Public Client Routes - Simplified to 3 core routes */}
-            <Route path="/" element={<ClientLanding />} />
-            <Route path="/settings" element={<SettingsPage />} />
-            <Route path="/bar/onboard" element={<BarOnboarding />} />
-            <Route path="/order/:id" element={<ClientOrderStatus />} />
-            {/* QR codes should link directly to /v/:venueId/t/:tableCode */}
-            <Route path="/v/:venueId" element={<ClientMenu />} />
-            <Route path="/v/:venueId/t/:tableCode" element={<ClientMenu />} />
-            {/* Legacy route redirects */}
-            <Route path="/scan" element={<ClientLanding />} />
-            <Route path="/profile" element={<Navigate to="/settings" replace />} />
-            <Route path="/menu/:venueId" element={<ClientMenu />} />
-            <Route path="/menu/:venueId/t/:tableCode" element={<ClientMenu />} />
-
-            {/* Manager Routes (Private) - Bar/Restaurant Managers */}
-            <Route path="/manager/login" element={<VendorLogin />} />
-            <Route
-              path="/manager/live"
-              element={
-                <RequireAuth requiredRole={UserType.MANAGER}>
-                  <LiveDashboard />
-                </RequireAuth>
-              }
-            />
-            <Route
-              path="/manager/menu"
-              element={
-                <RequireAuth requiredRole={UserType.MANAGER}>
-                  <MenuManagement />
-                </RequireAuth>
-              }
-            />
-            <Route
-              path="/manager/history"
-              element={
-                <RequireAuth requiredRole={UserType.MANAGER}>
-                  <HistoryAnalytics />
-                </RequireAuth>
-              }
-            />
-            <Route
-              path="/manager/settings"
-              element={
-                <RequireAuth requiredRole={UserType.MANAGER}>
-                  <VendorSettings />
-                </RequireAuth>
-              }
-            />
-            <Route
-              path="/manager/dashboard"
-              element={
-                <RequireAuth requiredRole={UserType.MANAGER}>
-                  <Navigate to="/manager/live" replace />
-                </RequireAuth>
-              }
-            />
-            <Route
-              path="/manager/dashboard/:tab"
-              element={
-                <RequireAuth requiredRole={UserType.MANAGER}>
-                  <VendorDashboard />
-                </RequireAuth>
-              }
-            />
-
-            {/* Admin Routes (Private) */}
-            <Route path="/admin/login" element={<AdminLogin />} />
-            <Route
-              path="/admin/dashboard"
-              element={
-                <RequireAuth requiredRole={UserType.ADMIN}>
-                  <AdminDashboard />
-                </RequireAuth>
-              }
-            />
-            <Route
-              path="/admin/vendors"
-              element={
-                <RequireAuth requiredRole={UserType.ADMIN}>
-                  <AdminVendors />
-                </RequireAuth>
-              }
-            />
-            <Route
-              path="/admin/orders"
-              element={
-                <RequireAuth requiredRole={UserType.ADMIN}>
-                  <AdminOrders />
-                </RequireAuth>
-              }
-            />
-            <Route
-              path="/admin/system"
-              element={
-                <RequireAuth requiredRole={UserType.ADMIN}>
-                  <AdminSystem />
-                </RequireAuth>
-              }
-            />
-            <Route
-              path="/admin/users"
-              element={
-                <RequireAuth requiredRole={UserType.ADMIN}>
-                  <AdminUsers />
-                </RequireAuth>
-              }
-            />
-
-            {/* Legacy routes - redirect to new structure */}
-            <Route path="/vendor-login" element={<Navigate to="/manager/login" replace />} />
-            <Route path="/business" element={<Navigate to="/manager/login" replace />} />
-            <Route path="/staff/login" element={<Navigate to="/manager/login" replace />} />
-            <Route path="/admin-login" element={<AdminLogin />} />
-            <Route path="/vendor-dashboard" element={<RequireAuth requiredRole={UserType.MANAGER}><VendorDashboard /></RequireAuth>} />
-            <Route path="/vendor-dashboard/:tab" element={<RequireAuth requiredRole={UserType.MANAGER}><VendorDashboard /></RequireAuth>} />
-            <Route path="/admin-dashboard" element={<RequireAuth requiredRole={UserType.ADMIN}><AdminDashboard /></RequireAuth>} />
-            <Route path="/admin-vendors" element={<RequireAuth requiredRole={UserType.ADMIN}><AdminVendors /></RequireAuth>} />
-            <Route path="/admin-orders" element={<RequireAuth requiredRole={UserType.ADMIN}><AdminOrders /></RequireAuth>} />
-            <Route path="/admin-system" element={<RequireAuth requiredRole={UserType.ADMIN}><AdminSystem /></RequireAuth>} />
-            <Route path="/admin-users" element={<RequireAuth requiredRole={UserType.ADMIN}><AdminUsers /></RequireAuth>} />
-
-            {/* Dev route removed - DeveloperSwitchboard deleted */}
-          </Routes>
-        </Suspense>
+        {routesContent}
       </motion.div>
     </AnimatePresence>
   );

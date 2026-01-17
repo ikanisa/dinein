@@ -15,18 +15,22 @@ test.describe('Client User Journey', () => {
         await page.context().clearCookies();
     });
 
-    test('homepage loads and redirects correctly', async ({ page }) => {
+    test('homepage loads correctly', async ({ page }) => {
         await page.goto('/#/');
         await page.waitForLoadState('networkidle');
 
-        // Homepage should redirect to scan or a vendor page
+        // Homepage renders ClientLanding at root - check for landing page content
         const url = page.url();
-        const isValidRedirect = url.includes('/scan') || url.includes('/v/') || url.includes('/settings');
-        expect(isValidRedirect).toBeTruthy();
+        const isValidLocation = url.includes('/#/') || url.endsWith('/');
+        expect(isValidLocation).toBeTruthy();
 
         // Check that the page has loaded properly (no blank screen)
-        const hasContent = await page.locator('main, div, [class*="glass"]').first().isVisible();
+        const hasContent = await page.locator('main, div, [class*="glass"], h1, h2, button').first().isVisible();
         expect(hasContent).toBeTruthy();
+
+        // Verify no critical errors during load
+        const pageTitle = await page.title();
+        expect(pageTitle).toBeTruthy();
     });
 
     test('settings page is accessible', async ({ page }) => {

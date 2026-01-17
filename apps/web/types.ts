@@ -59,6 +59,7 @@ export interface Venue {
   address: string;
   description: string;
   revolutHandle: string;
+  momoNumber?: string;  // MTN Mobile Money number for Rwanda payments
   phone?: string;
   whatsappNumber?: string;
   website?: string;
@@ -69,7 +70,7 @@ export interface Venue {
   menu: MenuItem[];
   imageUrl?: string;
   ownerId?: string;
-  currency?: string; // e.g., '€', '$', '£'
+  currency?: string; // e.g., '€', '$', '£', 'RWF'
   status?: 'active' | 'pending_claim' | 'suspended';
 }
 

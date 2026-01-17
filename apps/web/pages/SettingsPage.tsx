@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { GlassCard } from '../components/GlassCard';
 import { ProfileSkeleton } from '../components/ProfileSkeleton';
+import { PageHeader } from '../components/common/PageHeader';
 import { getMyProfile, updateMyProfile } from '../services/databaseService';
 import { getOrderById } from '../services/databaseService';
 import { User, Order, OrderStatus } from '../types';
@@ -136,30 +137,19 @@ const SettingsPage = () => {
   }
 
   return (
-    <div className="min-h-screen pb-24 bg-background animate-fade-in pt-safe-top">
-      {/* Header */}
-      <div className="sticky top-0 z-40 px-6 pt-12 pb-4 bg-glass border-b border-glassBorder backdrop-blur-xl">
-        <div className="flex items-center gap-4">
-          <button
-            onClick={() => navigate(-1)}
-            className="w-10 h-10 rounded-full bg-surface-highlight flex items-center justify-center text-foreground active:scale-95 transition-transform"
-            aria-label="Go back"
-          >
-            ←
-          </button>
-          <h1 className="text-2xl font-bold text-foreground">{t('settings.title')}</h1>
-        </div>
-        <button
-          onClick={() => navigate('/')}
-          className="w-10 h-10 rounded-full bg-surface-highlight flex items-center justify-center text-foreground active:scale-95 transition-transform absolute right-6 top-12"
-          aria-label="Go Home"
-        >
-          🏠
-        </button>
+    <div className="min-h-screen pb-24 bg-background animate-fade-in">
+      {/* Header using PageHeader component */}
+      <PageHeader
+        title={t('settings.title')}
+        leftAction="back"
+        rightAction="home"
+      />
 
-      </div>
+      {/* Spacer for fixed header */}
+      <div className="h-20" />
 
       <div className="p-6 space-y-6">
+
         {/* User Profile Section */}
         <GlassCard className="flex items-center gap-4">
           <div className="w-16 h-16 rounded-full bg-gradient-to-br from-secondary-500 to-primary-500 flex items-center justify-center text-2xl font-bold text-white">

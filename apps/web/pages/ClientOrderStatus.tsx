@@ -3,6 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { GlassCard } from '../components/GlassCard';
 import { Spinner } from '../components/Loading';
 import { Button } from '../components/ui';
+import { PageHeader } from '../components/common/PageHeader';
 import { getOrderById } from '../services/databaseService';
 import { Order, OrderStatus, PaymentStatus } from '../types';
 import { toast } from 'react-hot-toast';
@@ -83,26 +84,18 @@ const ClientOrderStatus = () => {
   }
 
   return (
-    <main className="min-h-screen bg-background p-6 pb-24 pt-safe-top" role="main" aria-label="Order status">
-      <div className="max-w-md mx-auto space-y-6">
-        {/* Header */}
-        <div className="flex items-center justify-between mb-6">
-          <button
-            onClick={() => order?.venueId ? navigate(`/v/${order.venueId}`) : navigate('/')}
-            aria-label="Back to Menu"
-            className="w-10 h-10 rounded-full bg-surface-highlight flex items-center justify-center text-foreground hover:bg-surface-highlight/80 transition-colors"
-          >
-            ⬅
-          </button>
-          <h1 className="text-2xl font-bold text-foreground">Order Status</h1>
-          <button
-            onClick={() => navigate('/')}
-            aria-label="Home"
-            className="w-10 h-10 rounded-full bg-surface-highlight flex items-center justify-center text-foreground hover:bg-surface-highlight/80 transition-colors"
-          >
-            🏠
-          </button>
-        </div>
+    <main className="min-h-screen bg-background pb-24" role="main" aria-label="Order status">
+      {/* Header using PageHeader component */}
+      <PageHeader
+        title="Order Status"
+        leftAction="back"
+        rightAction="home"
+      />
+
+      {/* Spacer for fixed header */}
+      <div className="h-20" />
+
+      <div className="max-w-md mx-auto p-6 space-y-6">
 
         {/* ... existing code ... */}
 

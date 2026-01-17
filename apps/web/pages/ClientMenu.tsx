@@ -156,20 +156,43 @@ const ClientMenu = () => {
   }
 
   // Determine payment availability dynamically from venue data
-  const getPaymentProvider = () => {
+  // Returns all available payment providers for the venue
+  const getPaymentProviders = () => {
+    const providers = [];
+
+    // MOMO (Rwanda) - Display number for user to dial
+    if (venue.momoNumber) {
+      providers.push({
+        type: 'momo',
+        name: 'MTN MoMo',
+        color: 'bg-yellow-500 shadow-yellow-500/30',
+        icon: '📱',
+        // MOMO uses USSD codes which aren't web-linkable
+        // We'll show the number for the user to dial
+        handle: venue.momoNumber,
+        isDialable: true  // Flag to show "Dial to pay" instead of "Open"
+      });
+    }
+
+    // Revolut (Malta/Europe)
     if (venue.revolutHandle) {
-      return {
-        name: 'Revolut Pay',
+      providers.push({
+        type: 'revolut',
+        name: 'Revolut',
         color: 'bg-secondary-500 shadow-secondary-500/30',
         icon: 'R',
         linkPrefix: 'https://revolut.me/',
-        handle: venue.revolutHandle
-      };
+        handle: venue.revolutHandle,
+        isDialable: false
+      });
     }
-    return null;
+
+    return providers;
   };
 
-  const paymentProvider = getPaymentProvider();
+  const paymentProviders = getPaymentProviders();
+  // Primary provider for backward compatibility
+  const paymentProvider = paymentProviders.find(p => !p.isDialable) || paymentProviders[0] || null;
 
   const validateAndProceed = (method: 'digital' | 'cash') => {
     if (!manualTableRef.trim()) {
@@ -667,7 +690,8 @@ const ClientMenu = () => {
           {/* Payment Buttons */}
           <div>
             <h3 className="font-bold text-muted text-xs uppercase tracking-wider mb-3">Confirm & Pay</h3>
-            <div className="grid grid-cols-2 gap-3 pb-6">
+            <div className="flex flex-col gap-3 pb-6">
+              {/* Cash option - always available */}
               <button
                 onClick={() => validateAndProceed('cash')}
                 disabled={!manualTableRef.trim()}
@@ -675,25 +699,51 @@ const ClientMenu = () => {
                   }`}
                 aria-label="Pay with cash"
               >
-                💶 Cash
+                💶 Pay with Cash
               </button>
-              <button
-                onClick={() => validateAndProceed('digital')}
-                disabled={!paymentProvider || !manualTableRef.trim()}
-                className={`min-h-[48px] py-4 rounded-xl font-bold shadow-lg transition flex items-center justify-center gap-2 touch-target ${paymentProvider && manualTableRef.trim()
-                  ? `${paymentProvider.color} text-white active:scale-95`
-                  : 'bg-gray-500/20 text-gray-500 cursor-not-allowed'
-                  }`}
-                aria-label={paymentProvider ? `Pay with ${paymentProvider.name}` : 'Digital payment not available'}
-              >
-                {paymentProvider ? (
-                  <>
-                    {paymentProvider.icon} {paymentProvider.name}
-                  </>
+
+              {/* Digital payment providers */}
+              {paymentProviders.map((provider) => (
+                provider.isDialable ? (
+                  // MOMO - opens tel: link
+                  <a
+                    key={provider.type}
+                    href={`tel:${provider.handle}`}
+                    onClick={() => {
+                      if (!manualTableRef.trim()) return;
+                      validateAndProceed('digital');
+                    }}
+                    className={`min-h-[48px] py-4 rounded-xl font-bold shadow-lg transition flex items-center justify-center gap-2 touch-target ${manualTableRef.trim()
+                      ? `${provider.color} text-white active:scale-95`
+                      : 'bg-gray-500/20 text-gray-500 pointer-events-none'
+                      }`}
+                    aria-label={`Pay with ${provider.name}`}
+                  >
+                    {provider.icon} {provider.name} ({provider.handle})
+                  </a>
                 ) : (
-                  'No Digital Pay'
-                )}
-              </button>
+                  // Revolut / other web-based providers
+                  <button
+                    key={provider.type}
+                    onClick={() => validateAndProceed('digital')}
+                    disabled={!manualTableRef.trim()}
+                    className={`min-h-[48px] py-4 rounded-xl font-bold shadow-lg transition flex items-center justify-center gap-2 touch-target ${manualTableRef.trim()
+                      ? `${provider.color} text-white active:scale-95`
+                      : 'bg-gray-500/20 text-gray-500 cursor-not-allowed'
+                      }`}
+                    aria-label={`Pay with ${provider.name}`}
+                  >
+                    {provider.icon} {provider.name}
+                  </button>
+                )
+              ))}
+
+              {/* Fallback if no digital payments */}
+              {paymentProviders.length === 0 && (
+                <div className="text-center text-muted text-xs py-2">
+                  Only cash payment available at this venue
+                </div>
+              )}
             </div>
           </div>
         </BottomSheet>

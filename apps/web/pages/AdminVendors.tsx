@@ -391,7 +391,7 @@ const AdminVendors = () => {
                     <GlassCard className="w-full max-w-md max-h-[90vh] overflow-y-auto">
                         <div className="flex justify-between items-center mb-6">
                             <h2 className="text-xl font-bold text-foreground">Add New Bar</h2>
-                            <button onClick={() => setShowAddModal(false)} className="text-muted hover:text-foreground text-2xl">×</button>
+                            <button onClick={() => setShowAddModal(false)} aria-label="Close modal" className="text-muted hover:text-foreground text-2xl">×</button>
                         </div>
                         <form onSubmit={handleAddVendor} className="space-y-4">
                             <Input label="Bar Name *" value={formData.name} onChange={e => setFormData(p => ({ ...p, name: e.target.value }))} required fullWidth variant="glass" />
@@ -442,7 +442,7 @@ const AdminVendors = () => {
                     <GlassCard className="w-full max-w-md max-h-[90vh] overflow-y-auto">
                         <div className="flex justify-between items-center mb-6">
                             <h2 className="text-xl font-bold text-foreground">Edit Bar</h2>
-                            <button onClick={() => { setShowEditModal(false); setEditingVendor(null); }} className="text-muted hover:text-foreground text-2xl">×</button>
+                            <button onClick={() => { setShowEditModal(false); setEditingVendor(null); }} aria-label="Close modal" className="text-muted hover:text-foreground text-2xl">×</button>
                         </div>
                         <form onSubmit={handleEditVendor} className="space-y-4">
                             <Input label="Bar Name *" value={formData.name} onChange={e => setFormData(p => ({ ...p, name: e.target.value }))} required fullWidth variant="glass" />

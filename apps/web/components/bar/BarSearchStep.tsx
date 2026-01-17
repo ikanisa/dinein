@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useMemo } from 'react';
 import { GlassCard } from '../GlassCard';
 import { Spinner } from '../Loading';
 import { searchBars } from '../../services/barService';
@@ -16,26 +16,27 @@ export const BarSearchStep: React.FC<BarSearchStepProps> = ({ onSelect, onAddNew
     const [isSearching, setIsSearching] = useState(false);
     const [hasSearched, setHasSearched] = useState(false);
 
-    const debouncedSearch = useCallback(
-        debounce(async (searchQuery: string) => {
-            if (searchQuery.length < 2) {
-                setResults([]);
-                setHasSearched(false);
-                return;
-            }
+    const debouncedSearch = useMemo(
+        () =>
+            debounce(async (searchQuery: string) => {
+                if (searchQuery.length < 2) {
+                    setResults([]);
+                    setHasSearched(false);
+                    return;
+                }
 
-            setIsSearching(true);
-            try {
-                const bars = await searchBars(searchQuery);
-                setResults(bars);
-                setHasSearched(true);
-            } catch (error) {
-                console.error('Search failed:', error);
-                setResults([]);
-            } finally {
-                setIsSearching(false);
-            }
-        }, 300),
+                setIsSearching(true);
+                try {
+                    const bars = await searchBars(searchQuery);
+                    setResults(bars);
+                    setHasSearched(true);
+                } catch (error) {
+                    console.error('Search failed:', error);
+                    setResults([]);
+                } finally {
+                    setIsSearching(false);
+                }
+            }, 300),
         []
     );
 

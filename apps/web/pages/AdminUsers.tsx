@@ -175,7 +175,7 @@ const AdminUsers = () => {
           <GlassCard className="w-full max-w-sm">
             <div className="flex justify-between items-center mb-6">
               <h2 className="text-xl font-bold text-foreground">Add New Admin</h2>
-              <button onClick={() => setShowAddModal(false)} className="text-muted hover:text-foreground text-2xl">×</button>
+              <button onClick={() => setShowAddModal(false)} aria-label="Close modal" className="text-muted hover:text-foreground text-2xl">×</button>
             </div>
             <form onSubmit={handleAddAdmin} className="space-y-4">
               <Input
