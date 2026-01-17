@@ -133,6 +133,6 @@ export interface AuditLog {
   action: string;
   entityType: string;
   entityId: string;
-  metadata: any;
+  metadata: Record<string, unknown>;
   createdAt: number;
 }

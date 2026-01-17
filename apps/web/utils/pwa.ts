@@ -6,9 +6,14 @@
 /**
  * Checks if app is running in standalone mode (installed as PWA)
  */
+// iOS-specific navigator property
+interface NavigatorStandalone extends Navigator {
+  standalone?: boolean;
+}
+
 export const isStandalone = (): boolean => {
   return (
-    ('standalone' in window.navigator && (window.navigator as any).standalone) ||
+    ('standalone' in window.navigator && (window.navigator as NavigatorStandalone).standalone === true) ||
     window.matchMedia('(display-mode: standalone)').matches ||
     (document.referrer.includes('android-app://') || false)
   );
@@ -62,7 +67,7 @@ export const requestInstallPrompt = (): Promise<Event | null> => {
     };
 
     window.addEventListener('beforeinstallprompt', handler);
-    
+
     // Timeout after 5 seconds
     setTimeout(() => {
       window.removeEventListener('beforeinstallprompt', handler);
@@ -88,7 +93,7 @@ export const checkServiceWorkerUpdate = (): Promise<boolean> => {
       }
 
       registration.update();
-      
+
       registration.addEventListener('updatefound', () => {
         const newWorker = registration.installing;
         if (newWorker) {
@@ -103,7 +108,7 @@ export const checkServiceWorkerUpdate = (): Promise<boolean> => {
           resolve(false);
         }
       });
-      
+
       // If no update found, resolve after short delay
       setTimeout(() => resolve(false), 1000);
     });
